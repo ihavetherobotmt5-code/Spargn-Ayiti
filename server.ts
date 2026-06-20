@@ -22,7 +22,7 @@ async function startServer() {
     try {
       const { messages, context } = req.body;
       
-      const apiKey = (req.headers['x-api-key'] as string) || process.env.GEMINI_API_KEY;
+      const apiKey = (req.headers['x-api-key'] as string) || process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYa;
       if (!apiKey) {
         return res.status(400).json({ 
           error: "GEMINI_API_KEY is not configured. Please add it via the Settings / Secrets tab in AI Studio, or paste your custom key directly inside the chatbot settings." 
