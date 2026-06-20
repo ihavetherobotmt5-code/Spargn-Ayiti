@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { TRANSLATIONS } from '../lib/translations';
 import { ExchangeRates, LanguageCode } from '../types';
-import { Clipboard, HardDriveDownload, RefreshCw, Key, ShieldCheck, Trash2, CheckCircle2, Languages, RefreshCw as LoopIcon } from 'lucide-react';
+import { Clipboard, HardDriveDownload, RefreshCw, Key, ShieldCheck, Trash2, CheckCircle2, Languages, RefreshCw as LoopIcon, Eye, EyeOff, Sparkles } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
   const { 
@@ -32,6 +32,31 @@ export const SettingsPage: React.FC = () => {
   const [usd, setUsd] = useState(rates.USD.toString());
   const [eur, setEur] = useState(rates.EUR.toString());
   const [usdt, setUsdt] = useState(rates.USDT.toString());
+
+  // Gemini API key settings helpers
+  const [settingsApiKey, setSettingsApiKey] = useState(() => localStorage.getItem('spargn_user_gemini_key') || '');
+  const [showApiKeyInSettings, setShowApiKeyInSettings] = useState(false);
+
+  const handleSaveSettingsApiKey = () => {
+    localStorage.setItem('spargn_user_gemini_key', settingsApiKey.trim());
+    showToast(
+      language === 'HT' 
+        ? 'Kle API Gemini anrejistre avèk siksè!' 
+        : 'Clé API Gemini enregistrée avec succès !', 
+      'success'
+    );
+  };
+
+  const handleDeleteSettingsApiKey = () => {
+    setSettingsApiKey('');
+    localStorage.removeItem('spargn_user_gemini_key');
+    showToast(
+      language === 'HT' 
+        ? 'Kle API Gemini efase ak siksè !' 
+        : 'Clé API Gemini supprimée avec succès !', 
+      'info'
+    );
+  };
 
   // PIN settings helpers
   const [showPinForm, setShowPinForm] = useState(false);
@@ -460,6 +485,72 @@ export const SettingsPage: React.FC = () => {
           <span className="font-black text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
             {completedGoals.length} Objectifs
           </span>
+        </div>
+      </section>
+
+      {/* Intelligence & Pyas AI Config */}
+      <section id="settings-gemini-config" className="space-y-4">
+        <h4 className="font-bold text-neutral-200 text-base flex items-center gap-2">
+          ✨ {language === 'HT' ? 'Entèlijans & Pyas AI' : 'Intelligence & Pyas AI'}
+        </h4>
+
+        <div className="glass-card rounded-2xl p-6 border border-white/5 space-y-4 bg-neutral-900/40 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-xl pointer-events-none"></div>
+          
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0 text-amber-400">
+              <Key size={18} />
+            </div>
+            <div className="space-y-1">
+              <span className="font-semibold text-neutral-200 text-sm block">
+                {language === 'HT' ? 'Konfigirasyon kle API Gemini' : 'Configuration de la clé API Gemini'}
+              </span>
+              <p className="text-xs text-neutral-400 leading-relaxed max-w-xl">
+                {language === 'HT'
+                  ? "Pou chat bot la ka analyzer objektif ou byen, mete pwòp kle Gemini API ou a la. Kle sa a rete nan navigatè w sèlman epi li sekirize."
+                  : "Pour que le chatbot puisse analyser vos objectifs et vous donner des conseils d'épargne précis, configurez votre propre clé API Gemini. Cette clé est stockée uniquement en local dans votre navigateur."}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <div className="relative">
+              <input
+                type={showApiKeyInSettings ? 'text' : 'password'}
+                id="settings-gemini-key-input"
+                value={settingsApiKey}
+                onChange={(e) => setSettingsApiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="w-full bg-neutral-955 border border-white/5 focus:border-amber-500/50 rounded-xl px-4 py-3 text-xs text-neutral-200 placeholder:text-neutral-600 outline-none font-mono pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKeyInSettings(!showApiKeyInSettings)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 cursor-pointer border-none bg-transparent"
+              >
+                {showApiKeyInSettings ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            <div className="flex gap-2.5 font-extrabold uppercase text-[10px] tracking-wider pt-1">
+              <button
+                type="button"
+                onClick={handleSaveSettingsApiKey}
+                className="bg-amber-500 hover:bg-amber-400 text-neutral-950 py-2.5 px-4 rounded-xl transition-all cursor-pointer active:scale-95"
+              >
+                {language === 'HT' ? "Anrejistre" : "Sauvegarder la clé"}
+              </button>
+              {localStorage.getItem('spargn_user_gemini_key') && (
+                <button
+                  type="button"
+                  onClick={handleDeleteSettingsApiKey}
+                  className="bg-neutral-950 hover:bg-neutral-900 text-neutral-400 border border-white/5 hover:border-red-500/30 hover:text-red-400 py-2.5 px-4 rounded-xl transition-all cursor-pointer active:scale-95"
+                >
+                  {language === 'HT' ? "Efase" : "Supprimer la clé"}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 

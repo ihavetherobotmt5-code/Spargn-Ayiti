@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { MessageSquare, X, Send, Sparkles, AlertCircle, Bot, CornerDownLeft } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, AlertCircle, Bot, CornerDownLeft, Settings, Key, Eye, EyeOff } from 'lucide-react';
 import Markdown from 'react-markdown';
 
 interface ChatMessage {
@@ -20,6 +20,9 @@ export const PyasChatbot: React.FC = () => {
   } = useAppContext();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem('spargn_user_gemini_key') || '');
+  const [showKey, setShowKey] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     // Initial friendly greetings in French
     const defaultWelcome = "Bonjour ! 👋 Je suis Pyas, votre conseiller en budget Spargn. Je suis là pour vous aider à planifier vos objectifs, maîtriser votre Sòl (`tontine`), et vous guider pour épargner gourde par gourde ! Qu'allons-nous analyser aujourd'hui ? 💰";
@@ -43,6 +46,14 @@ export const PyasChatbot: React.FC = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isLoading, isOpen]);
+
+  // Sync custom key from localStorage when chatbot opens
+  useEffect(() => {
+    if (isOpen) {
+      const storedKey = localStorage.getItem('spargn_user_gemini_key') || '';
+      setCustomApiKey(storedKey);
+    }
+  }, [isOpen]);
 
   // Read current Sòl configuration directly from localStorage to provide premium accurate advice
   const getContext = () => {
@@ -109,11 +120,16 @@ export const PyasChatbot: React.FC = () => {
 
     try {
       const appContextValue = getContext();
+      const headersList: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (customApiKey.trim()) {
+        headersList['x-api-key'] = customApiKey.trim();
+      }
+
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: headersList,
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
           context: appContextValue
@@ -121,7 +137,16 @@ export const PyasChatbot: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(language === 'HT' ? 'Sèvè a gen pwoblèm' : 'Erreur de connexion avec le serveur');
+        let errorMsg = language === 'HT' ? 'Sèvè a gen pwoblèm' : 'Erreur de connexion avec le serveur';
+        try {
+          const errData = await response.json();
+          if (errData && errData.error) {
+            errorMsg = errData.error;
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -139,7 +164,9 @@ export const PyasChatbot: React.FC = () => {
       const errMsg: ChatMessage = {
         id: Math.random().toString(36).substring(7),
         role: 'assistant',
-        content: "Désolé, je rencontre une petite difficulté technique de connexion. Veuillez vérifier que votre clé `GEMINI_API_KEY` est bien enregistrée.",
+        content: err.message || (language === 'HT' 
+          ? "Désolé, mwen rankontre yon ti pwoblèm teknik koneksyon. Tanpri verifye si kle `GEMINI_API_KEY` ou a byen anrejistre." 
+          : "Désolé, je rencontre une petite difficulté technique de connexion. Veuillez vérifier que votre clé `GEMINI_API_KEY` est bien enregistrée."),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, errMsg]);
@@ -265,6 +292,13 @@ export const PyasChatbot: React.FC = () => {
 
             <div className="flex items-center gap-2">
               <button 
+                onClick={() => setShowSettings(!showSettings)}
+                className={`p-1 px-1.5 text-xs rounded-lg flex items-center justify-center transition-all cursor-pointer border ${showSettings ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'text-neutral-400 hover:text-white hover:bg-white/5 border-white/5'}`}
+                title="Configurer la clé API"
+              >
+                <Settings size={14} className={showSettings ? "animate-spin" : ""} style={{ animationDuration: '6s' }} />
+              </button>
+              <button 
                 onClick={clearHistory}
                 className="p-1 px-2 text-[10px] uppercase tracking-wider font-extrabold text-neutral-400 hover:text-red-400 rounded-lg hover:bg-white/5 cursor-pointer border border-white/5"
                 title="Effacer l'historique"
@@ -279,6 +313,85 @@ export const PyasChatbot: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Settings Panel */}
+          {showSettings && (
+            <div className="p-4 bg-neutral-900 border-b border-white/8 space-y-3 shrink-0 animate-in slide-in-from-top duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400 flex items-center gap-1.5 font-mono">
+                  <Key size={12} />
+                  <span>{language === 'HT' ? "Konfigure kle API ou" : "Configurez votre Clé API"}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(false)}
+                  className="text-[10px] text-neutral-400 hover:text-white cursor-pointer font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-[10px] text-neutral-400 leading-relaxed font-medium">
+                {language === 'HT'
+                  ? "Pou chat bot la mache pi byen, mete pwòp kle Gemini API ou. Li rete nan navigatè w sèlman epi li sekirize."
+                  : "Pour assurer le parfait fonctionnement du chatbot, renseignez votre propre clé Gemini API. Elle reste stockée localement en toute sécurité."}
+              </p>
+
+              <div className="relative">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  id="gemini-custom-api-key-input"
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="w-full bg-neutral-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-neutral-200 placeholder:text-neutral-600 outline-none focus:border-amber-500/40 font-mono pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute right-3 top-2.5 text-neutral-500 hover:text-neutral-300 cursor-pointer"
+                >
+                  {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 font-extrabold uppercase text-[10px] tracking-wider">
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('spargn_user_gemini_key', customApiKey.trim());
+                    showToast(
+                      language === 'HT' 
+                        ? 'Konfigirasyon anrejistre!' 
+                        : 'Configuration enregistrée !', 
+                      'success'
+                    );
+                    setShowSettings(false);
+                  }}
+                  className="flex-grow bg-amber-500 hover:bg-amber-400 text-neutral-950 py-2.5 px-3 rounded-xl transition-all cursor-pointer active:scale-95 text-center"
+                >
+                  {language === 'HT' ? "Anrejistre" : "Sauvegarder"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomApiKey('');
+                    localStorage.removeItem('spargn_user_gemini_key');
+                    showToast(
+                      language === 'HT' 
+                        ? 'Klè efase!' 
+                        : 'Clé API réinitialisée !', 
+                      'info'
+                    );
+                    setShowSettings(false);
+                  }}
+                  className="bg-neutral-950 hover:bg-neutral-900 text-neutral-400 border border-white/5 hover:border-red-500/30 hover:text-red-400 py-2.5 px-3 rounded-xl transition-all cursor-pointer active:scale-95 text-center"
+                >
+                  {language === 'HT' ? "Efase" : "Effacer"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Conversation history lists */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
