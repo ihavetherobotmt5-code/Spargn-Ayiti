@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Outfit", sans-serif;
+  
+  --color-primary: #f2ca50;
+  --color-primary-dark: #d9a826;
+  --color-haiti-blue: #022c7a;
+  --color-haiti-red: #d21034;
+}
+
+/* Luxury Premium Design System Custom Utilities */
+
+body {
+  background-color: #0a0a0a;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+.glass-card {
+  background: rgba(18, 18, 18, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(242, 202, 80, 0.2);
+  box-shadow: 0 20px 40px -15px rgba(242, 202, 80, 0.05), 0 0 30px -10px rgba(2, 44, 122, 0.3);
+}
+
+/* Beautiful dynamic neon text accents for Spargn Ayiti brand identity */
+.neon-text-gold {
+  text-shadow: 0 0 12px rgba(242, 202, 80, 0.3);
+}
+
+.neon-border-gold {
+  box-shadow: inset 0 0 12px rgba(242, 202, 80, 0.1), 0 0 20px rgba(242, 202, 80, 0.05);
+}
+
+/* Pure custom modern keyframes for subtle pulse waves */
+@keyframes wave-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.15; }
+  50% { transform: scale(1.05); opacity: 0.25; }
+}
+
+.ambient-glow-blue {
+  background: radial-gradient(circle, rgba(2, 44, 122, 0.15) 0%, transparent 70%);
+  animation: wave-pulse 12s ease-in-out infinite;
+}
+
+.ambient-glow-red {
+  background: radial-gradient(circle, rgba(210, 16, 52, 0.1) 0%, transparent 70%);
+  animation: wave-pulse 16s ease-in-out infinite alternate;
+}
+
+/* Beautiful subtle customized progress bars */
+.progress-bar-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar-shine::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-100%);
+  animation: progress-shimmer 3s infinite;
+}
+
+@keyframes progress-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

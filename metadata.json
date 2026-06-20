@@ -1,0 +1,6 @@
+{
+  "name": "Spargn Ayiti",
+  "description": "Un tracker de micro-épargne haïtien haut de gamme pour planifier, recommander et archiver vos objectifs financiers, goud apre goud.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
