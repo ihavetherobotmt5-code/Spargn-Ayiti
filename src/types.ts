@@ -15,6 +15,10 @@ export interface Goal {
   createdDate: string;
   completedDate?: string;
   status: 'active' | 'completed';
+  completionReason?: string;
+  completionType?: 'realized' | 'closed';
+  completionPercentage?: number;
+  daysSavedAhead?: number;
 }
 
 export interface Contribution {
@@ -33,3 +37,44 @@ export interface ExchangeRates {
 }
 
 export type LanguageCode = 'FR' | 'HT' | 'EN';
+
+// --- v1.3: Budget Intelligent & Enveloppes Flexibles ---
+
+export type IncomeSource = 'COMMERCE' | 'DAILY_LABOR' | 'TRANSFER' | 'SALARY' | 'OTHER';
+
+export interface IncomeTransaction {
+  id: string;
+  amount: number;
+  currency: CurrencyCode;
+  source: IncomeSource;
+  date: string; // YYYY-MM-DD
+  profileId: string; // ID of the applied distribution profile
+  splits: Record<string, number>; // envelopeId -> allocated amount in transaction currency
+  note?: string;
+}
+
+export interface BudgetEnvelope {
+  id: string; // 'food' | 'transport' | 'family' | 'emergency' | 'saving'
+  name: string; // French name
+  nameKreyol: string; // Kreyòl name
+  percentage: number; // Applied percentage
+  allocatedAmount: number; // Lifetime cumulative allocated amount in budget's base currency (HTG or stable)
+  spentAmount: number; // Lifetime cumulative spent amount in budget's base currency (HTG)
+  icon: string; // Lucide icon identifier
+}
+
+export interface DistributionProfile {
+  id: string;
+  name: string;
+  nameKreyol: string;
+  percentages: Record<string, number>; // envelopeId -> percentage (total must equal 100)
+}
+
+export interface FinancialState {
+  envelopes: BudgetEnvelope[];
+  profiles: DistributionProfile[];
+  incomeTransactions: IncomeTransaction[];
+  activeProfileId: string;
+  financialHealthScore: number;
+}
+

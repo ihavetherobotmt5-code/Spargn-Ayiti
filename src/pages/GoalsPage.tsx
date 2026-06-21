@@ -717,8 +717,26 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onSelectGoal, onOpenAddGoa
                       
                       <span className="font-bold flex items-center gap-1 font-mono text-neutral-500">
                         {goal.statusType === 'completed' ? (
-                          <span className="text-emerald-400 flex items-center gap-1 font-mono">
-                            <Trophy size={11} /> Ok konplè !
+                          <span className="text-emerald-400 flex flex-wrap items-center gap-1.5 font-mono">
+                            <Trophy size={11} />
+                            {goal.completionType === 'closed' ? (
+                              <span className="text-red-400 font-bold bg-red-500/10 px-1.5 py-0.5 rounded text-[9px] uppercase">
+                                🛑 {language === 'HT' ? 'Sispann' : 'Clos'}
+                              </span>
+                            ) : (
+                              <span className="text-emerald-400 font-bold">
+                                {language === 'HT' ? 'Konplè' : 'Atteint'}
+                                {goal.completionReason === 'promo' && ' 🏷️'}
+                                {goal.completionReason === 'help' && ' 🤝'}
+                                {goal.completionReason === 'balance' && ' 💰'}
+                                {goal.completionReason === 'early' && ' ⚡'}
+                              </span>
+                            )}
+                            {goal.daysSavedAhead && goal.daysSavedAhead > 0 ? (
+                              <span className="text-[#f2ca50] text-[9px] font-bold bg-amber-500/15 px-1.5 py-0.5 rounded">
+                                +{goal.daysSavedAhead}j
+                              </span>
+                            ) : null}
                           </span>
                         ) : (
                           <span>

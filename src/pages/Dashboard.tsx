@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { TRANSLATIONS } from '../lib/translations';
 import { GoalCard } from '../components/GoalCard';
+import { BudgetIntelligent } from '../components/BudgetIntelligent';
 import { 
   PlusCircle, 
   Zap, 
@@ -461,6 +462,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <Zap size={18} />
           {t.quickAdd}
         </button>
+      </section>
+
+      {/* 🛡️ MULTI-ENVELOPPES & BUDGET INTELLIGENT (v1.3) */}
+      <section className="glass-card rounded-2xl p-6 border border-white/5 shadow-sm space-y-4">
+        <BudgetIntelligent />
       </section>
 
       {/* 📈 COMPANION SAVINGS CUMULATIVE CHRONOLOGY (Item 1) */}

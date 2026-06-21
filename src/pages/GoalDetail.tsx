@@ -121,7 +121,27 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
       aiCoachPromptBtn: "Créer un plan d'action de l'IA",
       aiCoachGenerating: "Planification en cours (Pyas analyse vos données)...",
       aiCoachIntro: "Envie d'accélérer vos économies pour cet objectif ? Pyas AI peut analyser votre rythme actuel et formuler 3 actions concrètes pour réussir !",
-      aiCoachDisclaimer: "Pyas s'adapte à vos données réelles pour vous offrir des solutions de budget sur-mesure."
+      aiCoachDisclaimer: "Pyas s'adapte à vos données réelles pour vous offrir des solutions de budget sur-mesure.",
+      // Early completion strings
+      completeEarlyTitle: "Félicitations ! 🎉",
+      completeEarlySubtitle: "Voulez-vous marquer cet objectif comme réalisé même si l'épargne n'a pas encore atteint 100 % ?",
+      completeEarlyExplanation: "Cela arrive souvent si vous avez trouvé une promotion, si un proche vous a soutenu, ou si vous disposiez déjà d'un complément d'argent.",
+      reasonLabel: "Pourquoi marquez-vous cet objectif comme réalisé ?",
+      reasonPromoCategory: "promo",
+      reasonPromo: "🏷️ J'ai bénéficié d'une promotion / rabais",
+      reasonHelp: "🤝 Un proche ou un membre de ma famille m'a aidé",
+      reasonBalance: "💰 Je disposais déjà du reste de l'argent nécessaire",
+      reasonEarly: "⚡ J'ai obtenu ce que je voulais plus tôt que prévu",
+      reasonOther: "🔮 Autre raison",
+      closeGoalTitle: "Fermer l'objectif sans atteindre 100 %",
+      closeGoalDesc: "Vous souhaitez abandonner ou arrêter cet objectif ? Vos économies ne seront pas effacées et l'historique sera conservé.",
+      btnKeepSaving: "⬅️ Continuer l'épargne",
+      btnConfirmRealized: "🎉 Oui, je l'ai réalisé !",
+      btnConfirmClosed: "🛑 Fermer cet objectif",
+      daysAheadText: "Vous avez réalisé votre objectif !",
+      daysAheadPlan: "Incroyable ! Vous avez devancé votre plan de {{days}} jours. Vous aviez prévu de terminer le {{targetDate}}, mais vous l'avez obtenu aujourd'hui !",
+      statusClosedLabel: "Clos / Arrêté",
+      statusRealizedLabel: "Réalisé",
     },
     HT: {
       congratsTitle: "Gwo Bravo ! 🏆",
@@ -141,7 +161,27 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
       aiCoachPromptBtn: "Kreye plan aksyon avèk IA",
       aiCoachGenerating: "Pyas ap analize kounye a...",
       aiCoachIntro: "Ou ta renmen fini ak objektif sa a pi vit ? Pyas AI ka analize kijan w ap mete depo yo kounye a epi ba w 3 fòmil pratik pou w reyisi !",
-      aiCoachDisclaimer: "Pyas gade done reyèl ou pou l ba w konsèy ak estrateji ki reyalize."
+      aiCoachDisclaimer: "Pyas gade done reyèl ou pou l ba w konsèy ak estrateji ki reyalize.",
+      // Early completion strings
+      completeEarlyTitle: "Felisitasyon ! 🎉",
+      completeEarlySubtitle: "Ou vle make objektif sa a kòm reyalize menm si ekonomi an poko rive 100 % ?",
+      completeEarlyExplanation: "Sa rive pafwa paske ou jwenn yon rabè, yon fanmi ede w, oswa ou te deja gen yon pati nan lajan an.",
+      reasonLabel: "Poukisa ou vle make objektif sa kòm reyalize ?",
+      reasonPromoCategory: "promo",
+      reasonPromo: "🏷️ Mwen jwenn yon rabè / bon afè",
+      reasonHelp: "🤝 Yon fanmi oswa yon zanmi ede m",
+      reasonBalance: "💰 Mwen te deja gen rès lajan an nan men m",
+      reasonEarly: "⚡ Mwen rive jwenn sa m te vle a pi bonè",
+      reasonOther: "🔮 Lòt rezon",
+      closeGoalTitle: "Fèmen objektif la san rive nan 100 %",
+      closeGoalDesc: "Èske ou vle sispann oswa abandone objektif sa a ? Sa pap efase depo ak ekonomi ou te deja fè yo. Yo rete nan istwa.",
+      btnKeepSaving: "⬅️ Kontinye ekonomize",
+      btnConfirmRealized: "🎉 Wi, mwen reyalize l !",
+      btnConfirmClosed: "🛑 Fèmen objektif sa a",
+      daysAheadText: "Ou fini objektif ou avèk siksè !",
+      daysAheadPlan: "Ekselan ! Ou depase plan an avèk {{days}} jou davans ! Ou te prevwa fini dat {{targetDate}}, men ou rive jwenn li jodi a !",
+      statusClosedLabel: "Fèmen / Sispann",
+      statusRealizedLabel: "Reyalize",
     },
     EN: {
       congratsTitle: "Congratulations! 🏆",
@@ -161,7 +201,27 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
       aiCoachPromptBtn: "Formulate AI custom action plan",
       aiCoachGenerating: "Running optimization analysis...",
       aiCoachIntro: "Looking to hasten completion of this goal? Pyas AI can analyze your current rate and compile a 3-step actionable strategy for you!",
-      aiCoachDisclaimer: "Pyas utilizes your real-time stats to draft precise, achievable financial milestones."
+      aiCoachDisclaimer: "Pyas utilizes your real-time stats to draft precise, achievable financial milestones.",
+      // Early completion strings
+      completeEarlyTitle: "Congratulations! 🎉",
+      completeEarlySubtitle: "Do you want to mark this goal as achieved even though your savings haven't reached 100% yet?",
+      completeEarlyExplanation: "This often happens if you found a discount, received help from someone, or already had the remaining balance.",
+      reasonLabel: "Why are you marking this goal as completed?",
+      reasonPromoCategory: "promo",
+      reasonPromo: "🏷️ I found a discount / promotion",
+      reasonHelp: "🤝 A friend or family member helped me",
+      reasonBalance: "💰 I already had the remaining money",
+      reasonEarly: "⚡ I achieved my target earlier than expected",
+      reasonOther: "🔮 Other reason",
+      closeGoalTitle: "Close goal without reaching 100%",
+      closeGoalDesc: "Do you want to stop or abandon this goal? Your savings will not be deleted and history will be preserved.",
+      btnKeepSaving: "⬅️ Continue saving",
+      btnConfirmRealized: "🎉 Yes, I accomplished it!",
+      btnConfirmClosed: "🛑 Close this goal",
+      daysAheadText: "Goal achieved with success!",
+      daysAheadPlan: "Amazing! You completed your plan {{days}} days ahead of schedule! You had planned to finish on {{targetDate}}, but you got it today!",
+      statusClosedLabel: "Closed / Stopped",
+      statusRealizedLabel: "Achieved",
     }
   };
 
@@ -170,6 +230,9 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
   const [showAddContribution, setShowAddContribution] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBypassCompleteConfirm, setShowBypassCompleteConfirm] = useState(false);
+  const [completeStep, setCompleteStep] = useState<'options' | 'realized_reason' | 'close_confirm' | 'celebrate'>('options');
+  const [selectedReason, setSelectedReason] = useState<string>('promo');
+  const [daysAheadCalculated, setDaysAheadCalculated] = useState<number>(0);
   const [contribToDelete, setContribToDelete] = useState<string | null>(null);
   
   // Advanced history tools state
@@ -346,11 +409,42 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
 
   const handleMarkAsCompleted = () => {
     if (progress < 100) {
+      setCompleteStep('options');
+      setSelectedReason('promo');
+      setDaysAheadCalculated(0);
       setShowBypassCompleteConfirm(true);
       return;
     }
     markGoalAsCompleted(goal.id);
     showToast(t.goalAchievedToast, 'success');
+    onBack();
+  };
+
+  const handleConfirmEarlyRealized = () => {
+    const targetDt = new Date(goal.targetDate);
+    const todayDt = new Date();
+    const diffTime = targetDt.getTime() - todayDt.getTime();
+    const daysAhead = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (daysAhead > 0) {
+      setDaysAheadCalculated(daysAhead);
+      setCompleteStep('celebrate');
+    } else {
+      markGoalAsCompleted(goal.id, selectedReason, 'realized', progress, 0);
+      showToast(t.goalAchievedToast, 'success');
+      onBack();
+    }
+  };
+
+  const handleFinishCelebrate = () => {
+    markGoalAsCompleted(goal.id, selectedReason, 'realized', progress, daysAheadCalculated);
+    showToast(t.goalAchievedToast, 'success');
+    onBack();
+  };
+
+  const handleConfirmClosed = () => {
+    markGoalAsCompleted(goal.id, 'closed_unrealized', 'closed', progress, 0);
+    showToast(language === 'HT' ? 'Objektif fèmen ak siksè !' : 'Objectif clos avec succès !', 'success');
     onBack();
   };
 
@@ -441,18 +535,43 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
         />
       ) : (
         goal.status === 'completed' && (
-          <div className="bg-gradient-to-r from-emerald-950/40 via-neutral-900/40 to-amber-950/20 border border-emerald-500/20 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
+          <div className={`bg-gradient-to-r ${goal.completionType === 'closed' ? 'from-red-950/30 via-neutral-900/40 to-amber-950/10 border-red-500/25' : 'from-emerald-950/40 via-neutral-900/40 to-amber-950/20 border-emerald-500/20'} border rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg`}>
             <div className="flex items-center gap-3.5 text-center md:text-left flex-col md:flex-row">
-              <div className="w-11 h-11 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-lg shadow-[0_0_15px_rgba(16,185,129,0.15)] flex-shrink-0">
-                🏆
+              <div className={`w-11 h-11 rounded-full ${goal.completionType === 'closed' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'} flex items-center justify-center text-lg shadow-[0_0_15px_rgba(16,185,129,0.15)] flex-shrink-0`}>
+                {goal.completionType === 'closed' ? '🛑' : '🏆'}
               </div>
-              <div>
-                <h3 className="font-extrabold text-sm md:text-base text-emerald-400">
-                  {df.congratsTitle}
+              <div className="space-y-1">
+                <h3 className={`font-extrabold text-sm md:text-base ${goal.completionType === 'closed' ? 'text-red-400' : 'text-emerald-400'}`}>
+                  {goal.completionType === 'closed' ? df.statusClosedLabel : df.completeEarlyTitle}
                 </h3>
-                <p className="text-neutral-300 text-xs mt-0.5 leading-relaxed">
-                  {df.congratsText} {df.congratsOn} <span className="font-bold text-amber-450">{goal.completedDate ? formatDate(goal.completedDate, language === 'EN' ? 'en-US' : 'fr-FR') : (language === 'HT' ? 'moman sa' : 'récemment')}</span>.
+                <p className="text-neutral-300 text-xs leading-relaxed">
+                  {goal.completionType === 'closed' ? (
+                    language === 'HT' 
+                      ? 'Objektif sa a te fèmen/sispann san li pa rive 100% pwogrè.' 
+                      : 'Cet objectif a été clos sans avoir atteint son achèvement complet.'
+                  ) : (
+                    <span>
+                      {df.congratsText} {df.congratsOn} <span className="font-bold text-amber-450">{goal.completedDate ? formatDate(goal.completedDate, language === 'EN' ? 'en-US' : 'fr-FR') : (language === 'HT' ? 'moman sa' : 'récemment')}</span>.
+                    </span>
+                  )}
                 </p>
+                {/* Custom meta info tags */}
+                <div className="flex flex-wrap gap-2 pt-1 justify-center md:justify-start">
+                  {goal.completionType !== 'closed' && goal.completionReason && (
+                    <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg px-2 py-0.5 text-[10px] font-bold">
+                      {goal.completionReason === 'promo' && df.reasonPromo}
+                      {goal.completionReason === 'help' && df.reasonHelp}
+                      {goal.completionReason === 'balance' && df.reasonBalance}
+                      {goal.completionReason === 'early' && df.reasonEarly}
+                      {goal.completionReason === 'other' && df.reasonOther}
+                    </span>
+                  )}
+                  {goal.daysSavedAhead && goal.daysSavedAhead > 0 ? (
+                    <span className="bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded-lg px-2 py-0.5 text-[10px] font-extrabold font-mono animate-pulse">
+                      🚀 +{goal.daysSavedAhead} {language === 'HT' ? 'jou davans' : 'jours d\'avance'}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
             <button
@@ -889,16 +1008,16 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
               id="complete-goal-btn-bypass"
               type="button"
               onClick={handleMarkAsCompleted}
-              className="px-6 py-3 bg-neutral-900 border border-amber-500/20 hover:border-amber-500/40 text-neutral-300 font-extrabold rounded-xl text-xs uppercase duration-200 flex items-center gap-1.5 cursor-pointer w-full sm:w-auto justify-center group relative overflow-hidden"
-              title={
-                language === 'HT'
-                  ? `Antanke kreyatè, klike pou pase lòd fòse konplete a (${Math.round(progress)}% kounye a)`
-                  : `En tant que créateur, cliquez pour forcer la complétion de cet objectif (${Math.round(progress)}% actuellement)`
-              }
+              className="px-6 py-3 bg-neutral-900 border border-amber-500/30 hover:border-amber-400 text-amber-300 hover:text-amber-200 font-extrabold rounded-xl text-xs uppercase duration-200 flex items-center gap-1.5 cursor-pointer w-full sm:w-auto justify-center group relative overflow-hidden transition-all shadow-[0_0_15px_rgba(245,158,11,0.05)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] active:scale-95"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 absolute top-1.5 right-1.5 animate-pulse"></span>
-              <span className="text-amber-400">👑</span>
-              <span>{t.markAsCompleted} <span className="text-[10px] text-amber-500 font-bold block sm:inline">({language === 'HT' ? 'Fòse' : 'Forcer'})</span></span>
+              <span>🎉</span>
+              <span>
+                {language === 'HT' 
+                  ? 'Mwen reyalize objektif la' 
+                  : language === 'EN' 
+                  ? "I've achieved my goal" 
+                  : "J'ai réalisé cet objectif"}
+              </span>
             </button>
           )}
         </div>
@@ -940,32 +1059,213 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
         </div>
       )}
 
-      {/* Force Completion Bypass Confirmation popup */}
+      {/* Modern Humanized Early Completion Dialog System */}
       {showBypassCompleteConfirm && (
-        <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-neutral-900 border border-white/10 p-6 rounded-2xl max-w-sm w-full relative">
-            <h3 className="text-lg font-bold text-amber-500 mb-3 flex items-center gap-2">
-              👑 {language === 'HT' ? 'Fòse Konplete' : 'Force la Complétion'}
-            </h3>
-            <p className="text-neutral-300 text-xs font-semibold mb-6 leading-relaxed">
-              {language === 'HT' 
-                ? `Menmsi ou poko rive nan 100% pwogrè (${Math.round(progress)}%), antanke KREYATÈ / ADMIN, èske ou vle fòse konplete objektif sa a?`
-                : `Même si vous n'avez pas encore atteint 100% de progression (${Math.round(progress)}%), en tant que CRÉATEUR / ADMIN, souhaitez-vous forcer la complétion de cet objectif ?`}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowBypassCompleteConfirm(false)}
-                className="flex-1 py-3 px-4 bg-neutral-800 text-white hover:bg-neutral-750 font-bold rounded-xl text-xs uppercase transition-colors border border-white/5 cursor-pointer"
-              >
-                {t.no}
-              </button>
-              <button
-                onClick={handleForceCompleteGoal}
-                className="flex-1 py-3 px-4 bg-amber-500 text-neutral-950 hover:bg-amber-400 font-black rounded-xl text-xs uppercase transition-colors border-none cursor-pointer"
-              >
-                {t.yes}
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-neutral-900 border border-white/10 p-6 md:p-8 rounded-2xl max-w-md w-full relative shadow-[0_0_50px_rgba(0,0,0,0.8)] space-y-6">
+            
+            {/* STEP 1: OPTIONS FOR REASON OR CLOSE */}
+            {completeStep === 'options' && (
+              <div className="space-y-5">
+                <div className="text-center space-y-2">
+                  <div className="text-4xl">🥳</div>
+                  <h3 className="text-xl font-extrabold text-[#f2ca50] tracking-tight">
+                    {df.completeEarlyTitle}
+                  </h3>
+                  <p className="text-neutral-200 text-sm font-semibold max-w-sm mx-auto leading-relaxed">
+                    {df.completeEarlySubtitle} ({Math.round(progress)}%)
+                  </p>
+                </div>
+
+                <p className="text-xs text-neutral-400 bg-neutral-950/50 p-4 rounded-xl border border-white/3 leading-relaxed text-center">
+                  💡 {df.completeEarlyExplanation}
+                </p>
+
+                <div className="space-y-3 pt-2">
+                  {/* Option Realized Successfully */}
+                  <button
+                    type="button"
+                    onClick={() => setCompleteStep('realized_reason')}
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 to-teal-950/45 border-2 border-emerald-500/30 hover:border-emerald-400 text-left cursor-pointer transition-all hover:scale-[1.01] flex items-center justify-between group active:scale-95"
+                  >
+                    <div>
+                      <h4 className="font-bold text-emerald-400 text-sm flex items-center gap-1.5">
+                        <span>🎉</span>
+                        <span>{language === 'HT' ? 'Mwen reyalize l !' : 'J\'ai atteint mon objectif !'}</span>
+                      </h4>
+                      <p className="text-neutral-400 text-[11px] mt-1 font-medium">
+                        {language === 'HT' ? 'Mwen jwenn sa m te vle a' : 'J\'ai obtenu l\'objet ou le service désiré.'}
+                      </p>
+                    </div>
+                    <span className="text-neutral-500 group-hover:text-emerald-400 font-extrabold text-sm">➡️</span>
+                  </button>
+
+                  {/* Option Closed uncompleted */}
+                  <button
+                    type="button"
+                    onClick={() => setCompleteStep('close_confirm')}
+                    className="w-full p-4 rounded-xl bg-neutral-950/40 border border-white/5 hover:border-amber-500/20 text-left cursor-pointer transition-all hover:scale-[1.01] flex items-center justify-between group active:scale-95"
+                  >
+                    <div>
+                      <h4 className="font-bold text-amber-500/90 group-hover:text-amber-400 text-sm flex items-center gap-1.5">
+                        <span>🛑</span>
+                        <span>{language === 'HT' ? 'Abandone / Fèmen li' : 'Arrêter / Clore'}</span>
+                      </h4>
+                      <p className="text-neutral-400 text-[11px] mt-1 font-medium">
+                        {language === 'HT' ? 'Mwen pa swete kontinye sere kòb pou sa a' : 'Je souhaite simplement clore cet objectif sans suite.'}
+                      </p>
+                    </div>
+                    <span className="text-neutral-500 group-hover:text-amber-400 font-extrabold text-sm">➡️</span>
+                  </button>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowBypassCompleteConfirm(false)}
+                    className="w-full py-3.5 bg-neutral-800 text-neutral-300 hover:text-white font-bold rounded-xl text-xs uppercase transition-all tracking-wider border border-white/5 cursor-pointer active:scale-95"
+                  >
+                    {df.btnKeepSaving}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: CHOOSE SUCCESS REASON */}
+            {completeStep === 'realized_reason' && (
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black text-amber-400 flex items-center gap-2">
+                    🎯 Poukisa ou reyalize l ?
+                  </h3>
+                  <p className="text-xs text-neutral-400">
+                    {df.reasonLabel}
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  {[
+                    { key: 'promo', label: df.reasonPromo },
+                    { key: 'help', label: df.reasonHelp },
+                    { key: 'balance', label: df.reasonBalance },
+                    { key: 'early', label: df.reasonEarly },
+                    { key: 'other', label: df.reasonOther },
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all text-xs font-semibold select-none ${
+                        selectedReason === item.key
+                          ? 'bg-amber-500/10 border-amber-500 text-amber-300'
+                          : 'bg-neutral-950/40 border-white/5 text-neutral-300 hover:bg-neutral-950/60'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="early_complete_reason"
+                        value={item.key}
+                        checked={selectedReason === item.key}
+                        onChange={() => setSelectedReason(item.key)}
+                        className="accent-amber-500 h-4 w-4 shrink-0"
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setCompleteStep('options')}
+                    className="flex-1 py-3 px-4 bg-neutral-800 hover:bg-neutral-750 text-neutral-300 font-bold rounded-xl text-xs uppercase border border-white/5 cursor-pointer active:scale-95"
+                  >
+                    Back / Tounen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmEarlyRealized}
+                    className="flex-1 py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black rounded-xl text-xs uppercase duration-200 cursor-pointer active:scale-95"
+                  >
+                    {language === 'HT' ? 'Konfime 🎉' : 'Confirmer 🎉'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: HIGH ENERGY TIMELINE SAVINGS CELEBRATION */}
+            {completeStep === 'celebrate' && (
+              <div className="space-y-5 text-center py-4">
+                <div className="text-5xl animate-bounce">🥳</div>
+                <h3 className="text-xl font-black text-amber-300 tracking-tight">
+                  {language === 'HT' ? 'Ou depase plan an !' : 'Vous avez devancé votre plan !'}
+                </h3>
+                
+                <div className="bg-amber-500/10 border border-amber-500/20 p-5 rounded-2xl space-y-3 text-center">
+                  <p className="text-neutral-100 text-sm font-semibold max-w-xs mx-auto leading-relaxed">
+                    {df.daysAheadPlan
+                      .replace('{{days}}', daysAheadCalculated.toString())
+                      .replace('{{targetDate}}', formatDate(goal.targetDate, language === 'EN' ? 'en-US' : 'fr-FR'))}
+                  </p>
+                  <p className="text-[11px] text-amber-400 font-mono font-bold uppercase tracking-wider">
+                    🏆 {daysAheadCalculated} {language === 'HT' ? 'jou davans kach !' : 'jours d\'avance !'}
+                  </p>
+                </div>
+
+                <p className="text-xs text-neutral-400 px-2 leading-relaxed">
+                  {language === 'HT' 
+                    ? 'Pyas ak Spargn Ayiti kontan pou siksè sa a ! Ekonomi ak efò ou yo ap kontinye enspire w pou lòt vizyon.' 
+                    : 'Pyas et Spargn Ayiti célèbrent vos accomplissements ! Votre rigueur financière est récompensée.'}
+                </p>
+
+                <div className="pt-3">
+                  <button
+                    type="button"
+                    onClick={handleFinishCelebrate}
+                    className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:to-amber-500 text-neutral-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-[0_0_25px_rgba(245,158,11,0.3)] cursor-pointer active:scale-95 transition-all"
+                  >
+                    {language === 'HT' ? "Mete kòb nan pòch mwen / Fèmen !! 👑" : "Finaliser l'archivage !! 👑"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: HEALTHY CLOSE UNCOMPLETED INTERACTION */}
+            {completeStep === 'close_confirm' && (
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black text-red-400 flex items-center gap-1.5">
+                    <span>🛑</span>
+                    <span>{df.closeGoalTitle}</span>
+                  </h3>
+                  <p className="text-xs text-neutral-400 leading-relaxed">
+                    {df.closeGoalDesc}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-neutral-950/60 rounded-xl border border-white/5 text-[11px] text-neutral-300 leading-relaxed space-y-1">
+                  <p className="font-bold text-amber-400">🛡️ {language === 'HT' ? 'Sa ou dwe konnen :' : 'Note de sécurité :'}</p>
+                  <p>{language === 'HT' ? '• Lajan ou sere yo pap siprime oswa efase.' : '• Vos dépôts d\'épargne passés restent comptabilisés de manière intègre.'}</p>
+                  <p>{language === 'HT' ? '• Pyas ak lòt kalkilatè yo konnen ou te reyalize depo sa yo.' : '• Votre historique aidera le moteur financier à comprendre vos habitudes d\'épargne.'}</p>
+                </div>
+
+                <div className="flex gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setCompleteStep('options')}
+                    className="flex-1 py-3 px-4 bg-neutral-800 hover:bg-neutral-750 text-neutral-300 font-bold rounded-xl text-xs uppercase border border-white/5 cursor-pointer active:scale-95"
+                  >
+                    Back / Tounen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmClosed}
+                    className="flex-1 py-3 px-4 bg-red-650 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase duration-200 cursor-pointer active:scale-95 border-none"
+                  >
+                    {df.btnConfirmClosed}
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}

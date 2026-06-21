@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Goal, Contribution, ExchangeRates, LanguageCode, CurrencyCode, ContributionFrequency } from '../types';
+import { Goal, Contribution, ExchangeRates, LanguageCode, CurrencyCode, ContributionFrequency, IncomeTransaction, BudgetEnvelope, DistributionProfile, IncomeSource } from '../types';
+import { FinancialEngine, DEFAULT_ENVELOPES, DEFAULT_PROFILES } from '../lib/FinancialEngine';
 
 interface AppContextType {
   goals: Goal[];
@@ -9,7 +10,13 @@ interface AppContextType {
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'createdDate' | 'status'>) => Goal;
-  markGoalAsCompleted: (goalId: string) => void;
+  markGoalAsCompleted: (
+    goalId: string,
+    completionReason?: string,
+    completionType?: 'realized' | 'closed',
+    completionPercentage?: number,
+    daysSavedAhead?: number
+  ) => void;
   reopenGoal: (goalId: string) => void;
   deleteGoal: (goalId: string, isCompleted?: boolean) => void;
   addContribution: (goalId: string, contribution: Omit<Contribution, 'id'>) => Contribution;
@@ -29,6 +36,18 @@ interface AppContextType {
   isUnlocked: boolean;
   setIsUnlocked: (unlocked: boolean) => void;
   showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
+
+  // --- Budget Intelligent ---
+  envelopes: BudgetEnvelope[];
+  profiles: DistributionProfile[];
+  incomeTransactions: IncomeTransaction[];
+  activeProfileId: string;
+  financialHealthScore: number;
+  addIncomeTransaction: (transaction: Omit<IncomeTransaction, 'id' | 'splits'>) => void;
+  addEnvelopeExpense: (envelopeId: string, amount: number, note?: string) => void;
+  transferFonDegaje: (sourceId: string, destId: string, amount: number) => void;
+  updateProfilePercentages: (profileId: string, percentages: Record<string, number>) => void;
+  setActiveProfileId: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -51,6 +70,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [userName, setUserName] = useState<string>("Jean-Robert L'Ouverture");
   const [userAvatar, setUserAvatar] = useState<string>("https://lh3.googleusercontent.com/aida-public/AB6AXuASZfbYFSGky0hlFIES1mhVDDKA9MytGAuPtQArL2ivbgyThhmS1VHY9uf7p6XoOmelOtSA5dBhHG6g3gj79xhIsa6wiNALu3yw__mtPY3ycXZlqaXZEMCkqYEX4YdCOIxLSq-yn9XhUDkEiMgyDZhr-Jv0utVxoz5FeEgFl49_icVFrav2JyR7TNSDpej-PTjnMf_PBS5WkWza_bm7Tt1RXoACU8zTwOG42dY6okVlUXt9kBTU4eYhEq-RJlfowpT3zbpnxqucQ06p");
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // --- Budget Intelligent State v1.3 ---
+  const [envelopes, setEnvelopes] = useState<BudgetEnvelope[]>(DEFAULT_ENVELOPES);
+  const [profiles, setProfiles] = useState<DistributionProfile[]>(DEFAULT_PROFILES);
+  const [incomeTransactions, setIncomeTransactions] = useState<IncomeTransaction[]>([]);
+  const [activeProfileId, setActiveProfileId] = useState<string>('normal');
 
   const [isPinLockEnabled, setPinLockEnabled] = useState<boolean>(() => {
     try {
@@ -76,6 +101,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  // Derived financial health score
+  const financialHealthScore = FinancialEngine.calculateFinancialHealthScore(
+    envelopes,
+    incomeTransactions,
+    contributions
+  );
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToast({ message, type });
@@ -121,6 +153,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (data.userAvatar) setUserAvatar(data.userAvatar);
         if (data.isPinLockEnabled !== undefined) setPinLockEnabled(data.isPinLockEnabled);
         if (data.pinCode !== undefined) setPinCode(data.pinCode);
+        
+        // --- Budget Intelligent ---
+        if (data.envelopes) setEnvelopes(data.envelopes);
+        if (data.profiles) setProfiles(data.profiles);
+        if (data.incomeTransactions) setIncomeTransactions(data.incomeTransactions);
+        if (data.activeProfileId) setActiveProfileId(data.activeProfileId);
       } catch (e) {
         console.error('Failed to parse storage data:', e);
       }
@@ -211,10 +249,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         userName,
         userAvatar,
         isPinLockEnabled,
-        pinCode
+        pinCode,
+        envelopes,
+        profiles,
+        incomeTransactions,
+        activeProfileId
       }));
     }
-  }, [goals, completedGoals, contributions, rates, language, userName, userAvatar, isPinLockEnabled, pinCode, isLoaded]);
+  }, [goals, completedGoals, contributions, rates, language, userName, userAvatar, isPinLockEnabled, pinCode, envelopes, profiles, incomeTransactions, activeProfileId, isLoaded]);
 
   const addGoal = (goal: Omit<Goal, 'id' | 'createdDate' | 'status'>): Goal => {
     const newGoal: Goal = {
@@ -231,14 +273,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newGoal;
   };
 
-  const markGoalAsCompleted = (goalId: string) => {
+  const markGoalAsCompleted = (
+    goalId: string,
+    completionReason?: string,
+    completionType?: 'realized' | 'closed',
+    completionPercentage?: number,
+    daysSavedAhead?: number
+  ) => {
     const goalIndex = goals.findIndex(g => g.id === goalId);
     if (goalIndex > -1) {
       const goalToComplete = goals[goalIndex];
       const completed: Goal = {
         ...goalToComplete,
         status: 'completed',
-        completedDate: new Date().toISOString()
+        completedDate: new Date().toISOString(),
+        completionReason,
+        completionType: completionType || 'realized',
+        completionPercentage,
+        daysSavedAhead
       };
       setGoals(prev => prev.filter(g => g.id !== goalId));
       setCompletedGoals(prev => [...prev, completed]);
@@ -401,6 +453,80 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUserAvatar(avatar);
   };
 
+  const addIncomeTransaction = (transaction: Omit<IncomeTransaction, 'id' | 'splits'>) => {
+    const profile = profiles.find(p => p.id === transaction.profileId) || profiles[0] || DEFAULT_PROFILES[0];
+    const splits = FinancialEngine.computeSplits(transaction.amount, profile);
+    
+    const newTx: IncomeTransaction = {
+      ...transaction,
+      id: 'tx_' + Date.now().toString(),
+      splits,
+    };
+
+    setIncomeTransactions(prev => [newTx, ...prev]);
+
+    // Apply the splits to envelope allocated amounts, converted into base currency (HTG)
+    // To convert split (in transaction.currency) to HTG: convertToHTG
+    setEnvelopes(prevEnvs => {
+      return prevEnvs.map(env => {
+        const share = splits[env.id] || 0;
+        const shareHTG = FinancialEngine.convertToHTG(share, transaction.currency, rates);
+        return {
+          ...env,
+          allocatedAmount: env.allocatedAmount + shareHTG
+        };
+      });
+    });
+  };
+
+  const addEnvelopeExpense = (envelopeId: string, amount: number, note?: string) => {
+    setEnvelopes(prevEnvs => {
+      return prevEnvs.map(env => {
+        if (env.id === envelopeId) {
+          return {
+            ...env,
+            spentAmount: env.spentAmount + amount
+          };
+        }
+        return env;
+      });
+    });
+  };
+
+  const transferFonDegaje = (sourceId: string, destId: string, amount: number) => {
+    setEnvelopes(prevEnvs => {
+      return prevEnvs.map(env => {
+        if (env.id === sourceId) {
+          return {
+            ...env,
+            allocatedAmount: Math.max(0, env.allocatedAmount - amount)
+          };
+        }
+        if (env.id === destId) {
+          return {
+            ...env,
+            allocatedAmount: env.allocatedAmount + amount
+          };
+        }
+        return env;
+      });
+    });
+  };
+
+  const updateProfilePercentages = (profileId: string, percentages: Record<string, number>) => {
+    setProfiles(prevProfiles => {
+      return prevProfiles.map(p => {
+        if (p.id === profileId) {
+          return {
+            ...p,
+            percentages
+          };
+        }
+        return p;
+      });
+    });
+  };
+
   const clearAllData = () => {
     localStorage.removeItem(STORAGE_KEY);
     setGoals([]);
@@ -410,6 +536,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLanguage('HT');
     setUserName("Jean-Robert L'Ouverture");
     setUserAvatar("https://lh3.googleusercontent.com/aida-public/AB6AXuASZfbYFSGky0hlFIES1mhVDDKA9MytGAuPtQArL2ivbgyThhmS1VHY9uf7p6XoOmelOtSA5dBhHG6g3gj79xhIsa6wiNALu3yw__mtPY3ycXZlqaXZEMCkqYEX4YdCOIxLSq-yn9XhUDkEiMgyDZhr-Jv0utVxoz5FeEgFl49_icVFrav2JyR7TNSDpej-PTjnMf_PBS5WkWza_bm7Tt1RXoACU8zTwOG42dY6okVlUXt9kBTU4eYhEq-RJlfowpT3zbpnxqucQ06p");
+    setEnvelopes(DEFAULT_ENVELOPES);
+    setProfiles(DEFAULT_PROFILES);
+    setIncomeTransactions([]);
+    setActiveProfileId('normal');
   };
 
   return (
@@ -440,7 +570,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setPinCode,
       isUnlocked,
       setIsUnlocked,
-      showToast
+      showToast,
+      envelopes,
+      profiles,
+      incomeTransactions,
+      activeProfileId,
+      financialHealthScore,
+      addIncomeTransaction,
+      addEnvelopeExpense,
+      transferFonDegaje,
+      updateProfilePercentages,
+      setActiveProfileId
     }}>
       {children}
       {toast && (
