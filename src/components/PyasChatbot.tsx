@@ -37,6 +37,17 @@ export const PyasChatbot: React.FC = () => {
   });
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [remainingAiCalls, setRemainingAiCalls] = useState(() => {
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem('spargn_ai_date') || '';
+    let count = Number(localStorage.getItem('spargn_ai_count') || '0');
+    if (savedDate !== today) {
+      count = 0;
+      localStorage.setItem('spargn_ai_date', today);
+      localStorage.setItem('spargn_ai_count', '0');
+    }
+    return Math.max(0, 10 - count);
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +65,455 @@ export const PyasChatbot: React.FC = () => {
       setCustomApiKey(storedKey);
     }
   }, [isOpen]);
+
+  const checkAndRegisterAiCall = (): { allowed: boolean; remaining: number } => {
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem('spargn_ai_date') || '';
+    let count = Number(localStorage.getItem('spargn_ai_count') || '0');
+    
+    if (savedDate !== today) {
+      count = 0;
+      localStorage.setItem('spargn_ai_date', today);
+      localStorage.setItem('spargn_ai_count', '0');
+    }
+    
+    const limit = 10;
+    if (count >= limit) {
+      return { allowed: false, remaining: 0 };
+    }
+    
+    return { allowed: true, remaining: limit - count };
+  };
+
+  const incrementAiCallCount = () => {
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem('spargn_ai_date') || '';
+    let count = Number(localStorage.getItem('spargn_ai_count') || '0');
+    if (savedDate !== today) {
+      count = 0;
+      localStorage.setItem('spargn_ai_date', today);
+    }
+    const newCount = count + 1;
+    localStorage.setItem('spargn_ai_count', String(newCount));
+    setRemainingAiCalls(Math.max(0, 10 - newCount));
+  };
+
+  const getLocalResponse = (text: string): string | null => {
+    const raw = text.toLowerCase().trim();
+    const ctx = getContext();
+
+    // 1. Solde / balance check
+    if (
+      raw.includes('solde') || 
+      raw.includes('balans') || 
+      raw.includes('balance') || 
+      raw.includes('kòb') || 
+      raw.includes('gourde') || 
+      raw.includes('goud') || 
+      raw.includes('mon argent') || 
+      raw.includes('combien j\'ai') || 
+      raw.includes('montant') || 
+      raw.includes('économie') || 
+      raw.includes('ekonomize')
+    ) {
+      // Calculate total saved in goals
+      const totalSavedInGoals = goals.reduce((acc, g) => {
+        const list = contributions[g.id] || [];
+        return acc + list.reduce((sum, c) => sum + c.amount, 0);
+      }, 0);
+
+      const solPaidCount = ctx.solPaidWeeks.filter(Boolean).length;
+      const totalSolPaid = solPaidCount * ctx.solWeeklyHand;
+      const grandTotal = totalSavedInGoals + ctx.emergencyFund + totalSolPaid;
+
+      if (language === 'HT') {
+        return `### 💰 Rezime Balans ou (Mòd Lokal oswa Nivo 1)
+
+Kòb ou sere an total sou tout aplikasyon **Spargn Ayiti** a, san sa pa koute anyen nan API :
+
+*   **🎯 Objektif Epay yo :** \`${totalSavedInGoals.toLocaleString()} HTG\` (depoze sou objektif aktif yo)
+*   **🛡️ Kòb Sekou (Fon Irjans) :** \`${ctx.emergencyFund.toLocaleString()} HTG\`
+*   **🤝 Patisipasyon nan Sòl :** \`${totalSolPaid.toLocaleString()} HTG\` te deja vèse nan sik la (Semèn ${ctx.solWeek})
+
+---
+💵 **Total Sere Net :** **\`${grandTotal.toLocaleString()} HTG\`**
+
+*Chak ti goud ou sere se yon gwo pwoteksyon pou lavni ou ! Kontinye mete men !* 💪`;
+      } else if (language === 'EN') {
+        return `### 💰 Balance Summary (Mòd Lokal or Level 1)
+
+Here is your combined current savings summary, calculated locally (completely cost-free):
+
+*   **🎯 Savings Goals:** \`${totalSavedInGoals.toLocaleString()} HTG\` (collected across your active goals)
+*   **🛡️ Kòb Sekou (Emergency Fund):** \`${ctx.emergencyFund.toLocaleString()} HTG\`
+*   **🤝 Sòl Tontine Contribution:** \`${totalSolPaid.toLocaleString()} HTG\` contributed in the current cycle (Week ${ctx.solWeek})
+
+---
+💵 **Total Savings:** **\`${grandTotal.toLocaleString()} HTG\`**
+
+*Every gourde saved is a solid shield for your financial freedom! Keep up the amazing work!* 💪`;
+      } else {
+        return `### 💰 Résumé de vos Soldes (Niveau 1 - Instantané et Local)
+
+Voici le détail de votre argent épargné dans **Spargn Ayiti**, analysé localement pour préserver votre forfait :
+
+*   **🎯 Objectifs d'Épargne :** \`${totalSavedInGoals.toLocaleString()} HTG\` (cumulés sur vos projets actifs)
+*   **🛡️ Kòb Sekou (Fonds d'Urgence) :** \`${ctx.emergencyFund.toLocaleString()} HTG\`
+*   **🤝 Participation au Sòl :** \`${totalSolPaid.toLocaleString()} HTG\` versés dans le cycle en cours (Semaine ${ctx.solWeek})
+
+---
+💵 **Total Épargné :** **\`${grandTotal.toLocaleString()} HTG\`**
+
+*Chaque gourde mise de côté vous rapproche de votre indépendance financière !* 💪`;
+      }
+    }
+
+    // 2. Objectifs / Goals / progression check
+    if (
+      raw.includes('objectif') || 
+      raw.includes('objektif') || 
+      raw.includes('pwogrè') || 
+      raw.includes('pwogre') || 
+      raw.includes('progression') || 
+      raw.includes('avancement') || 
+      raw.includes('target') || 
+      raw.includes('liste') || 
+      raw.includes('lis ')
+    ) {
+      if (goals.length === 0) {
+        if (language === 'HT') {
+          return `### 🎯 Objektif Epay yo (Poko Genyen)
+
+Ou pa gen okenn objektif ki aktif kounye a sou kòb ki gen la.
+*Klike sou boutòn **+** nan paj objektif yo pou w kòmanse kreye yon vizyon !* 📈`;
+        } else if (language === 'EN') {
+          return `### 🎯 Savings Goals (Not Started Yet)
+
+You do not have any active goals recorded at the moment.
+*Click the **+** button on the goals screen to lock in your first target!* 📈`;
+        } else {
+          return `### 🎯 Vos Objectifs d'Épargne (Aucun pour l'instant)
+
+Vous n'avez pas encore d'objectif actif enregistré dans l'application.
+*Cliquez sur le bouton **+** de l'onglet Objectifs pour tracer votre premier projet !* 📈`;
+        }
+      }
+
+      const getProgressBar = (prog: number) => {
+        const totalBlocks = 10;
+        const filledBlocks = Math.min(10, Math.max(0, Math.round((prog / 100) * totalBlocks)));
+        const emptyBlocks = totalBlocks - filledBlocks;
+        return '`[' + '█'.repeat(filledBlocks) + '░'.repeat(emptyBlocks) + '] ' + Math.min(100, Math.round(prog)) + '%`';
+      };
+
+      let result = '';
+      if (language === 'HT') {
+        result = `### 🎯 Lis ak Pwogrè Objektif ou yo (Nivo 1 - Lokal)\n\nMen sitiyasyon pwojè ou yo kounye a :\n\n`;
+        goals.forEach(g => {
+          const list = contributions[g.id] || [];
+          const saved = list.reduce((sum, c) => sum + c.amount, 0);
+          const prog = g.targetAmount > 0 ? (saved / g.targetAmount) * 100 : 0;
+          result += `*   **${g.icon || '🎯'} ${g.name}**\n`;
+          result += `    Progression: ${getProgressBar(prog)}\n`;
+          result += `    Sere: \`${saved.toLocaleString()} ${g.currency}\` / Cible: \`${g.targetAmount.toLocaleString()} ${g.currency}\` (Rès pou ranpli: \`${Math.max(0, g.targetAmount - saved).toLocaleString()} ${g.currency}\`)\n`;
+          result += `    Dat limit: \`${g.targetDate}\`\n\n`;
+        });
+        result += `💡 *Pyas di w : Sere kòb regilyèman se pi bèl sekrè pou w reyalize gwo rèv ou !*`;
+      } else if (language === 'EN') {
+        result = `### 🎯 Your Active Savings Goals (Level 1 - Local Direct)\n\nHere is a local list of your ongoing projects:\n\n`;
+        goals.forEach(g => {
+          const list = contributions[g.id] || [];
+          const saved = list.reduce((sum, c) => sum + c.amount, 0);
+          const prog = g.targetAmount > 0 ? (saved / g.targetAmount) * 100 : 0;
+          result += `*   **${g.icon || '🎯'} ${g.name}**\n`;
+          result += `    Progress: ${getProgressBar(prog)}\n`;
+          result += `    Saved: \`${saved.toLocaleString()} ${g.currency}\` / Target: \`${g.targetAmount.toLocaleString()} ${g.currency}\` (Remaining: \`${Math.max(0, g.targetAmount - saved).toLocaleString()} ${g.currency}\`)\n`;
+          result += `    Target Date: \`${g.targetDate}\`\n\n`;
+        });
+        result += `💡 *Pyas says: Steady regular contributions make the dream real. Keep building block by block!*`;
+      } else {
+        result = `### 🎯 Vos Objectifs d'Épargne Réels (Niveau 1 - Instantané)\n\nVoici l'état d'avancement de vos projets actifs :\n\n`;
+        goals.forEach(g => {
+          const list = contributions[g.id] || [];
+          const saved = list.reduce((sum, c) => sum + c.amount, 0);
+          const prog = g.targetAmount > 0 ? (saved / g.targetAmount) * 100 : 0;
+          result += `*   **${g.icon || '🎯'} ${g.name}**\n`;
+          result += `    Avancement : ${getProgressBar(prog)}\n`;
+          result += `    Épargné : \`${saved.toLocaleString()} ${g.currency}\` / Cible : \`${g.targetAmount.toLocaleString()} ${g.currency}\` (Reste : \`${Math.max(0, g.targetAmount - saved).toLocaleString()} ${g.currency}\`)\n`;
+          result += `    Date échéance : \`${g.targetDate}\`\n\n`;
+        });
+        result += `💡 *Le mot de Pyas : La rigueur l'emporte toujours sur les gros montants occasionnels !*`;
+      }
+      return result;
+    }
+
+    // 3. Sòl tontine check
+    if (
+      raw.includes('sòl') || 
+      raw.includes('sol ') || 
+      raw.includes('solde sol') ||
+      raw.includes('tontine') || 
+      raw.includes('main') || 
+      raw.includes('tirage') || 
+      raw.includes('tour') || 
+      raw.includes('lòt') || 
+      raw.includes('lot')
+    ) {
+      const paidCount = ctx.solPaidWeeks.filter(Boolean).length;
+      const totalPaid = paidCount * ctx.solWeeklyHand;
+
+      if (language === 'HT') {
+        return `### 🤝 Rapò ak Fonksyònman Sòl ou (Nivo 1 - Lokal)
+
+Sòl la se yon zouti tontine tradisyonèl poto mitan pou pèp Ayisyen. Men eta Sòl ou kounye a sou aplikasyon an :
+
+*   **💵 Main Sòl (Cotisation) :** \`${ctx.solWeeklyHand.toLocaleString()} HTG\` pa semèn
+*   **🎯 Tour Tiraj ou :** Semèn \`${ctx.solSelectedTurn}\` sou 4
+*   **📅 Semèn k ap woule a :** Semèn \`${ctx.solWeek}\` kounye a
+*   **📦 Gwo Lòt (Sa w ap touche) :** **\`${ctx.solPayout.toLocaleString()} HTG\`**
+*   **📈 Lajan ou deja vèse :** \`${totalPaid.toLocaleString()} HTG\`
+
+**✅ Eta peman ou fè :**
+* Let 1 (Semèn 1): ${ctx.solPaidWeeks[0] ? '🟢 Vèse' : '🔴 Poko vèse'}
+* Let 2 (Semèn 2): ${ctx.solPaidWeeks[1] ? '🟢 Vèse' : '🔴 Poko vèse'}
+* Let 3 (Semèn 3): ${ctx.solPaidWeeks[2] ? '🟢 Vèse' : '🔴 Poko vèse'}
+* Let 4 (Semèn 4): ${ctx.solPaidWeeks[3] ? '🟢 Vèse' : '🔴 Poko vèse'}
+
+*Sistèm lan ba w yon gwo kòb yon sèl kou pou w kòmanse oswa akselere gwo objektif ou ! Respekte vèsman yo pou Sòl la mache byen.* 🪙`;
+      } else if (language === 'EN') {
+        return `### 🤝 Sòl Tontine Status & Rules (Level 1 - Local)
+
+The traditional Haitian "Sòl" is a community-driven collective rotating savings challenge. Here is your current plan:
+
+*   **💵 Weekly Contribution (Main Sòl):** \`${ctx.solWeeklyHand.toLocaleString()} HTG\` per week
+*   **🎯 Your Payout Turn:** Week \`${ctx.solSelectedTurn}\` (out of 4)
+*   **📅 Active Cycle Week:** Week \`${ctx.solWeek}\`
+*   **📦 Hand Payout Value (Gwo Lòt):** **\`${ctx.solPayout.toLocaleString()} HTG\`**
+*   **📈 Completed payments:** \`${totalPaid.toLocaleString()} HTG\` paid
+
+**✅ Payment Status:**
+* Week 1: ${ctx.solPaidWeeks[0] ? '🟢 Contributed' : '🔴 Pending'}
+* Week 2: ${ctx.solPaidWeeks[1] ? '🟢 Contributed' : '🔴 Pending'}
+* Week 3: ${ctx.solPaidWeeks[2] ? '🟢 Contributed' : '🔴 Pending'}
+* Week 4: ${ctx.solPaidWeeks[3] ? '🟢 Contributed' : '🔴 Pending'}
+
+*Always pay your hands on schedule to maintain group symmetry and community confidence!* 🪙`;
+      } else {
+        return `### 🤝 Statut et Règles de votre Sòl (Niveau 1 - Local)
+
+Le Sòl traditionnel haïtien est un formidable levier d'épargne rotative communautaire. Voici un récapitulatif de votre plan actuel :
+
+*   **💵 Main Sòl (Mensualité/Semaine) :** \`${ctx.solWeeklyHand.toLocaleString()} HTG\` par semaine
+*   **🎯 Votre Tour de Tirage :** Semaine \`${ctx.solSelectedTurn}\` sur 4
+*   **📅 Semaine active :** Semaine \`${ctx.solWeek}\`
+*   **📦 Gwo Lòt (Cagnotte Finale attendue) :** **\`${ctx.solPayout.toLocaleString()} HTG\`**
+*   **📈 Somme totale versée :** \`${totalPaid.toLocaleString()} HTG\`
+
+**✅ Statut des Mains versées :**
+* Semaine 1 : ${ctx.solPaidWeeks[0] ? '🟢 Payée' : '🔴 En attente'}
+* Semaine 2 : ${ctx.solPaidWeeks[1] ? '🟢 Payée' : '🔴 En attente'}
+* Semaine 3 : ${ctx.solPaidWeeks[2] ? '🟢 Payée' : '🔴 En attente'}
+* Semaine 4 : ${ctx.solPaidWeeks[3] ? '🟢 Payée' : '🔴 En attente'}
+
+*N'oubliez pas d'honorer vos versements chaque semaine à temps pour respecter la tontine !* 🪙`;
+      }
+    }
+
+    // 4. Emergency fund / Kòb Sekou check
+    if (
+      raw.includes('sekou') || 
+      raw.includes('urgence') || 
+      raw.includes('accident') || 
+      raw.includes('fonds d') || 
+      raw.includes('fund')
+    ) {
+      if (language === 'HT') {
+        return `### 🛡️ Kòb Sekou (Fon Irjans - Nivo 1 - Lokal)
+
+Fon irjans "Kòb Sekou" se plak boukliye ou kont tout sanzatann lavi a (maladi, ijans kay, ets.) :
+
+*   **💰 Montant Sere Kounye a :** **\`${ctx.emergencyFund.toLocaleString()} HTG\`**
+
+💡 **Gid pratik Pyas :**
+Apre ou kreye yon pwojè, mete yon pati nan kòb ou genyen kòm kòb sekou. Yon nivo sekirite ideyal se kouvri 3 a 6 mwa depans minimòm pou lavi w. Menmsi se **50 goud** ou mete chak semèn sou li, sa ap evite w pran dèt an kachèt lè gen ijans !`;
+      } else if (language === 'EN') {
+        return `### 🛡️ Kòb Sekou (Emergency Shield - Level 1 - Local)
+
+The emergency fund "Kòb Sekou" functions as your armor against unforeseen events (medical costs, unexpected bills, temporary lay-offs):
+
+*   **💰 Saved Amount:** **\`${ctx.emergencyFund.toLocaleString()} HTG\`**
+
+💡 **Best Practices from Pyas:**
+Try to pile up enough to cover at least 3 to 6 months of your bare-minimum living expenses. Laying aside even **50 to 100 gourdes** every week directly to this fund before committing other expenses prevents you from getting caught in high-interest debt loops!`;
+      } else {
+        return `### 🛡️ Kòb Sekou (Fonds d'Urgence - Niveau 1 - Instantané)
+
+Le fonds de sécurité "Kòb Sekou" fait office de gilet pare-balles contre tous les aléas urgents (santé, pépins domestiques) :
+
+*   **💰 Montant Épargné Actuel :** **\`${ctx.emergencyFund.toLocaleString()} HTG\`**
+
+💡 **L'avis d'expert de Pyas :**
+Constituez idéalement l'équivalent de 3 à 6 mois de vos besoins vitaux de subsistance. Y faire glisser ne serait-ce que **50 ou 100 Gourdes** automatiquement chaque semaine prévient le recours à des micro-crédits toxiques !`;
+      }
+    }
+
+    // 5. Statistics / Dépôts check
+    if (
+      raw.includes('statistique') || 
+      raw.includes('stat') || 
+      raw.includes('depot') || 
+      raw.includes('depo') || 
+      raw.includes('kontribisyon') || 
+      raw.includes('historique') || 
+      raw.includes('istorik') || 
+      raw.includes('transaction')
+    ) {
+      // Aggregate contributions
+      let contribCount = 0;
+      let contribTotal = 0;
+      Object.keys(contributions).forEach(gId => {
+        const list = contributions[gId] || [];
+        contribCount += list.length;
+        contribTotal += list.reduce((s, c) => s + c.amount, 0);
+      });
+      const contribAvg = contribCount > 0 ? Math.round(contribTotal / contribCount) : 0;
+
+      if (language === 'HT') {
+        return `### 📊 Statistik ak Depozisyon ou yo (Nivo 1 - Isit la)
+
+Epay ou bati sou ti aksyon ki repete regilyèman :
+
+*   **📈 Kantite Depo Vese :** \`${contribCount} depo\` sou objektif ou yo
+*   **💰 Som Total Depoze :** \`${contribTotal.toLocaleString()} HTG\`
+*   **🔍 Mwayèn chak vèsman :** \`${contribAvg.toLocaleString()} HTG\`
+
+Chak fwa ou mete yon ti ti kòb sou kote, ou montre disiplin ou epi ou reyalize siksè. Kontinye konsa ! 🚀`;
+      } else if (language === 'EN') {
+        return `### 📊 Your Savings Contribution Metrics (Level 1 - Instant)
+
+Steady actions compound to build substantial wealth. Here are your stats:
+
+*   **📈 Savings Occurrences:** \`${contribCount} deposit(s)\`
+*   **💰 Total Saved Weight:** \`${contribTotal.toLocaleString()} HTG\`
+*   **🔍 Average Deposit Weight:** \`${contribAvg.toLocaleString()} HTG\`
+
+Consistency always beats irregular spikes. You are building highly positive saving habits! 🚀`;
+      } else {
+        return `### 📊 Statistiques de vos Dépôts (Niveau 1 - Local)
+
+La régularité est un super-pouvoir financier. Voici le résumé de vos dépôts :
+
+*   **📈 Versements effectués :** \`${contribCount} versement(s)\`
+*   **💰 Cumul Épargné :** \`${contribTotal.toLocaleString()} HTG\`
+*   **🔍 Moyenne par Dépôt :** \`${contribAvg.toLocaleString()} HTG\`
+
+Chaque dépôt consolidé renforce votre parcours et votre motivation d'épargne ! 🚀`;
+      }
+    }
+
+    // 6. Score check
+    if (
+      raw.includes('score') || 
+      raw.includes('habitudes') || 
+      raw.includes('abid') || 
+      raw.includes('sante') || 
+      raw.includes('skò') || 
+      raw.includes('sko') || 
+      raw.includes('finances')
+    ) {
+      // Calculate financial score
+      const hasGoals = goals.length > 0;
+      let contribCount = 0;
+      Object.keys(contributions).forEach(gId => {
+        contribCount += (contributions[gId] || []).length;
+      });
+
+      const pointsGoals = hasGoals ? 20 : 0;
+      const pointsContribs = contribCount > 0 ? Math.min(30, contribCount * 6) : 0;
+      const pointsEmergency = ctx.emergencyFund > 0 ? 30 : 0;
+      const pointsSol = ctx.solWeeklyHand > 0 ? 20 : 0;
+      const score = pointsGoals + pointsContribs + pointsEmergency + pointsSol;
+
+      let rating = 'D (Kòmanse)';
+      if (score >= 90) rating = '👑 AAA+ (Mèt Finans !)';
+      else if (score >= 75) rating = '🌟 A (Ekselan)';
+      else if (score >= 50) rating = '🟢 B (Bon travay)';
+      else if (score >= 30) rating = '🟡 C (Mwayen)';
+
+      if (language === 'HT') {
+        let advice = '';
+        if (pointsGoals === 0) advice += '* 🎯 Ou poko fikse yon objektif ! Kreye youn kounye a pou w jwenn direksyon.\n';
+        if (pointsContribs < 12) advice += '* 📈 Eseye fè depo yo pi souvan pou w gen plis disiplin ak pratik.\n';
+        if (pointsEmergency === 0) advice += '* 🛡️ Mete menm 50 Gourdes nan **Kòb Sekou** kounye a pou w gen sekirite kont risk.\n';
+        if (pointsSol === 0) advice += '* 🤝 Konfigure yon ti plan **Sòl** pou w aprann kolabore epi jwenn gwo lo an.\n';
+        if (advice === '') advice += '* 🎉 Ou gen pi bèl abitid yo net ! Kontinye pwoteje nivo AAA+ sa a ! ⭐\n';
+
+        return `### 🏆 Skò Sante Finansye ou Spargn (Nivo 1)
+
+Kalkil otomatik ak konbisyon done reyalite w yo :
+
+🎯 **Skò ou: \`${score} / 100\`**
+Evaluation : **\`${rating}\`**
+
+**Kijan nou rasanble pwen yo :**
+*   **🎯 Fikse Objektif :** \`${pointsGoals}/20\`
+*   **📈 Regilarite Depo :** \`${pointsContribs}/30\`
+*   **🛡️ Kòb Sekou (Irjans) :** \`${pointsEmergency}/30\`
+*   **🤝 Sòl (Epay Rotatif) :** \`${pointsSol}/20\`
+
+🌟 **Wout pou n asire siksè ak monte skò a :**
+${advice}`;
+      } else if (language === 'EN') {
+        let advice = '';
+        if (pointsGoals === 0) advice += '* 🎯 Set up your first goal to have a defined path!\n';
+        if (pointsContribs < 12) advice += '* 📈 Try to execute deposits more regularly to compound habits.\n';
+        if (pointsEmergency === 0) advice += '* 🛡️ Fund your **Kòb Sekou (Emergency Shield)** to bulletproof yourself!\n';
+        if (pointsSol === 0) advice += '* 🤝 Try completing one active **Sòl rotation challenge**!\n';
+        if (advice === '') advice += '* 🎉 Stellar! You are fully optimized. Maintain your AAA+ master score! ⭐\n';
+
+        return `### 🏆 Spargn Financial Health Score (Level 1)
+
+This real-time indicator scores your local savings ecosystem objectively:
+
+🎯 **Your Score: \`${score} / 100\`**
+Performance Rank: **\`${rating}\`**
+
+**Scoring Breakdown:**
+*   **🎯 Goal Targets:** \`${pointsGoals}/20\`
+*   **📈 Savings Frequency:** \`${pointsContribs}/30\`
+*   **🛡️ Emergency Fund:** \`${pointsEmergency}/30\`
+*   **🤝 Sòl Participation:** \`${pointsSol}/20\`
+
+🌟 **How to enhance your score & financial stability:**
+${advice}`;
+      } else {
+        let advice = '';
+        if (pointsGoals === 0) advice += '* 🎯 Définissez un premier objectif d\'épargne actif pour donner une direction à vos finances.\n';
+        if (pointsContribs < 12) advice += '* 📈 Augmentez la fréquence de vos versements pour forger une discipline d\'acier.\n';
+        if (pointsEmergency === 0) advice += '* 🛡️ Alimentez le fonds **Kòb Sekou** pour être paré à faire face aux coups durs.\n';
+        if (pointsSol === 0) advice += '* 🤝 Configurez un cycle de **Sòl** pour structurer de grands paiements groupés.\n';
+        if (advice === '') advice += '* 🎉 Exceptionnel ! Vous avez mis en place de formidables habitudes de vie. Maintenez le cap AAA+ ! ⭐\n';
+
+        return `### 🏆 Score de Santé Financière Spargn (Niveau 1)
+
+Votre diagnostic financier calculé en temps réel d'après vos relevés réels :
+
+🎯 **Votre Score : \`${score} / 100\`**
+Évaluation globale : **\`${rating}\`**
+
+**Barème de calcul :**
+*   **🎯 Objectifs Clairs :** \`${pointsGoals}/20\`
+*   **📈 Fréquence Dépôts :** \`${pointsContribs}/30\`
+*   **🛡️ Fonds d'Urgence Kòb Sekou :** \`${pointsEmergency}/30\`
+*   **🤝 Intégration du Sòl :** \`${pointsSol}/20\`
+
+🌟 **Recommandations de Pyas pour briller :**
+${advice}`;
+      }
+    }
+
+    return null;
+  };
 
   // Read current Sòl configuration directly from localStorage to provide premium accurate advice
   const getContext = () => {
@@ -118,12 +578,64 @@ export const PyasChatbot: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
+    // 1. Level 1 check: Is it a local instant query?
+    const localContent = getLocalResponse(text);
+    if (localContent) {
+      setTimeout(() => {
+        const assistantMsg: ChatMessage = {
+          id: Math.random().toString(36).substring(7),
+          role: 'assistant',
+          content: localContent,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+        setIsLoading(false);
+      }, 650);
+      return;
+    }
+
+    // 2. Level 2 check: Check custom API key OR Rate Limiting
+    const isCustomKeyUsed = customApiKey.trim().length > 0;
+    const rateLimitCheck = checkAndRegisterAiCall();
+
+    if (!isCustomKeyUsed && !rateLimitCheck.allowed) {
+      // Show rate limit exceeded message
+      setTimeout(() => {
+        const quotaExceededContent = language === 'HT'
+          ? `⚠️ **Nivo 2 (IA jodi a fini / Quota Atteint)**
+
+Ou fin itilize limit gratis **10 mesaj konsèy IA** ou pou jodi a.
+
+**Kisa w ka fè kounye a :**
+1. 💡 **Sèvi ak Nivo 1 (Lokal & Gratifis):** Poze kesyon sou done w yo ak mo senp tankou: \`solde\`, \`objectifs\`, \`sòl\`, \`sekou\`, \`score\` oswa \`statistiques\`. Sa yo ap reponn enstantane san limit !
+2. ⚙️ **Enstale pwòp kle Gemini API ou:** Klike sou ikòn Paramètres anlè a dwat epi mete kle API Gemini w lan pou w jwenn aksè totalman san okenn limit ak chat la !`
+          : `⚠️ **Niveau 2 (Assistant IA limité / Quota Quotidien Atteint)**
+
+Vous avez épuisé vos **10 jetons d'IA approfondis** gratuits pour aujourd'hui.
+
+**Comment continuer à discuter ?**
+1. 💡 **Explorez gratuitement et en illimité** le diagnostic local (Niveau 1) en saisissant des termes comme : \`solde\`, \`objectifs\`, \`sòl\`, \`urgences\`, \`score\` ou \`statistiques\`. 
+2. ⚙️ **Renseignez votre propre clé API Gemini** dans les Paramètres (en haut à droite) pour débloquer des échanges d'analyse IA instantanés, privés et 100% illimités !`;
+
+        const limitMsg: ChatMessage = {
+          id: Math.random().toString(36).substring(7),
+          role: 'assistant',
+          content: quotaExceededContent,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, limitMsg]);
+        setIsLoading(false);
+      }, 700);
+      return;
+    }
+
+    // Otherwise, execute Level 2 calls to backend API
     try {
       const appContextValue = getContext();
       const headersList: Record<string, string> = {
         'Content-Type': 'application/json'
       };
-      if (customApiKey.trim()) {
+      if (isCustomKeyUsed) {
         headersList['x-api-key'] = customApiKey.trim();
       }
 
@@ -157,6 +669,11 @@ export const PyasChatbot: React.FC = () => {
         content: data.content,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
+
+      // Only increment daily usage score if calling the public/shared server-side API (no custom client key)
+      if (!isCustomKeyUsed) {
+        incrementAiCallCount();
+      }
 
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err: any) {
@@ -284,8 +801,12 @@ export const PyasChatbot: React.FC = () => {
                     LIVE
                   </span>
                 </div>
-                <p className="text-[10px] text-neutral-400 font-medium">
-                  Conseiller en budget & Sòl
+                <p className="text-[10px] text-neutral-400 font-medium flex items-center gap-1">
+                  <span>Conseiller</span>
+                  <span className="text-neutral-600 font-bold">•</span>
+                  <span className="text-amber-400 font-bold">
+                    {customApiKey.trim() ? "∞ IA ⚡" : `${remainingAiCalls}/10 IA`}
+                  </span>
                 </p>
               </div>
             </div>

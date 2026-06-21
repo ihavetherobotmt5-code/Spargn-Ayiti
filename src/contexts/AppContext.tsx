@@ -43,7 +43,13 @@ interface AppContextType {
   incomeTransactions: IncomeTransaction[];
   activeProfileId: string;
   financialHealthScore: number;
-  addIncomeTransaction: (transaction: Omit<IncomeTransaction, 'id' | 'splits'>) => void;
+  availableFunds: number;
+  setAvailableFunds: React.Dispatch<React.SetStateAction<number>>;
+  addEnvelope: (name: string, nameKreyol: string, icon: string, initialAllocated: number, extra?: Partial<BudgetEnvelope>) => void;
+  deleteEnvelope: (id: string) => void;
+  updateEnvelopeDeposit: (id: string, newAllocated: number) => void;
+  setEnvelopes: React.Dispatch<React.SetStateAction<BudgetEnvelope[]>>;
+  addIncomeTransaction: (transaction: Omit<IncomeTransaction, 'id' | 'splits'>, autoSplit?: boolean) => void;
   addEnvelopeExpense: (envelopeId: string, amount: number, note?: string) => void;
   transferFonDegaje: (sourceId: string, destId: string, amount: number) => void;
   updateProfilePercentages: (profileId: string, percentages: Record<string, number>) => void;
@@ -76,6 +82,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [profiles, setProfiles] = useState<DistributionProfile[]>(DEFAULT_PROFILES);
   const [incomeTransactions, setIncomeTransactions] = useState<IncomeTransaction[]>([]);
   const [activeProfileId, setActiveProfileId] = useState<string>('normal');
+  const [availableFunds, setAvailableFunds] = useState<number>(10500);
 
   const [isPinLockEnabled, setPinLockEnabled] = useState<boolean>(() => {
     try {
@@ -159,6 +166,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (data.profiles) setProfiles(data.profiles);
         if (data.incomeTransactions) setIncomeTransactions(data.incomeTransactions);
         if (data.activeProfileId) setActiveProfileId(data.activeProfileId);
+        if (data.availableFunds !== undefined) setAvailableFunds(data.availableFunds);
       } catch (e) {
         console.error('Failed to parse storage data:', e);
       }
@@ -253,10 +261,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         envelopes,
         profiles,
         incomeTransactions,
-        activeProfileId
+        activeProfileId,
+        availableFunds
       }));
     }
-  }, [goals, completedGoals, contributions, rates, language, userName, userAvatar, isPinLockEnabled, pinCode, envelopes, profiles, incomeTransactions, activeProfileId, isLoaded]);
+  }, [goals, completedGoals, contributions, rates, language, userName, userAvatar, isPinLockEnabled, pinCode, envelopes, profiles, incomeTransactions, activeProfileId, availableFunds, isLoaded]);
 
   const addGoal = (goal: Omit<Goal, 'id' | 'createdDate' | 'status'>): Goal => {
     const newGoal: Goal = {
@@ -453,30 +462,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUserAvatar(avatar);
   };
 
-  const addIncomeTransaction = (transaction: Omit<IncomeTransaction, 'id' | 'splits'>) => {
-    const profile = profiles.find(p => p.id === transaction.profileId) || profiles[0] || DEFAULT_PROFILES[0];
-    const splits = FinancialEngine.computeSplits(transaction.amount, profile);
-    
-    const newTx: IncomeTransaction = {
-      ...transaction,
-      id: 'tx_' + Date.now().toString(),
-      splits,
+  const addEnvelope = (name: string, nameKreyol: string, icon: string, initialAllocated: number, extra?: Partial<BudgetEnvelope>) => {
+    const id = 'env_' + Date.now().toString(36);
+    const newEnvelope: BudgetEnvelope = {
+      id,
+      name,
+      nameKreyol,
+      percentage: 0,
+      allocatedAmount: initialAllocated,
+      spentAmount: 0,
+      icon,
+      ...extra,
     };
+    setEnvelopes(prev => [...prev, newEnvelope]);
+    setAvailableFunds(prev => Math.max(0, prev - initialAllocated));
+  };
 
-    setIncomeTransactions(prev => [newTx, ...prev]);
+  const deleteEnvelope = (id: string) => {
+    const env = envelopes.find(e => e.id === id);
+    if (!env) return;
+    const refund = Math.max(0, env.allocatedAmount - env.spentAmount);
+    setEnvelopes(prev => prev.filter(e => e.id !== id));
+    setAvailableFunds(prev => prev + refund);
+  };
 
-    // Apply the splits to envelope allocated amounts, converted into base currency (HTG)
-    // To convert split (in transaction.currency) to HTG: convertToHTG
-    setEnvelopes(prevEnvs => {
-      return prevEnvs.map(env => {
-        const share = splits[env.id] || 0;
-        const shareHTG = FinancialEngine.convertToHTG(share, transaction.currency, rates);
+  const updateEnvelopeDeposit = (id: string, newAllocated: number) => {
+    setEnvelopes(prev => prev.map(env => {
+      if (env.id === id) {
+        const diff = newAllocated - env.allocatedAmount;
+        setAvailableFunds(curr => Math.max(0, curr - diff));
         return {
           ...env,
-          allocatedAmount: env.allocatedAmount + shareHTG
+          allocatedAmount: newAllocated
         };
+      }
+      return env;
+    }));
+  };
+
+  const addIncomeTransaction = (transaction: Omit<IncomeTransaction, 'id' | 'splits'>, autoSplit: boolean = true) => {
+    const amountHTG = FinancialEngine.convertToHTG(transaction.amount, transaction.currency, rates);
+
+    if (autoSplit) {
+      const profile = profiles.find(p => p.id === transaction.profileId) || profiles[0] || DEFAULT_PROFILES[0];
+      const splits = FinancialEngine.computeSplits(transaction.amount, profile);
+      
+      const newTx: IncomeTransaction = {
+        ...transaction,
+        id: 'tx_' + Date.now().toString(),
+        splits,
+      };
+
+      setIncomeTransactions(prev => [newTx, ...prev]);
+
+      // Apply the splits to envelope allocated amounts, converted into base currency (HTG)
+      setEnvelopes(prevEnvs => {
+        return prevEnvs.map(env => {
+          const share = splits[env.id] || 0;
+          const shareHTG = FinancialEngine.convertToHTG(share, transaction.currency, rates);
+          return {
+            ...env,
+            allocatedAmount: env.allocatedAmount + shareHTG
+          };
+        });
       });
-    });
+    } else {
+      // Add straight to availableFunds
+      const newTx: IncomeTransaction = {
+        ...transaction,
+        id: 'tx_' + Date.now().toString(),
+        splits: {}, // No splits, added to available funds
+      };
+
+      setIncomeTransactions(prev => [newTx, ...prev]);
+      setAvailableFunds(prev => prev + amountHTG);
+    }
   };
 
   const addEnvelopeExpense = (envelopeId: string, amount: number, note?: string) => {
@@ -540,6 +600,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProfiles(DEFAULT_PROFILES);
     setIncomeTransactions([]);
     setActiveProfileId('normal');
+    setAvailableFunds(10500);
   };
 
   return (
@@ -576,6 +637,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       incomeTransactions,
       activeProfileId,
       financialHealthScore,
+      availableFunds,
+      setAvailableFunds,
+      addEnvelope,
+      deleteEnvelope,
+      updateEnvelopeDeposit,
+      setEnvelopes,
       addIncomeTransaction,
       addEnvelopeExpense,
       transferFonDegaje,

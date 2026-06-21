@@ -60,6 +60,7 @@ export const DEFAULT_ENVELOPES: BudgetEnvelope[] = [
     allocatedAmount: 1800,
     spentAmount: 850,
     icon: 'utensils',
+    category: 'monthly',
   },
   {
     id: 'transport',
@@ -69,6 +70,7 @@ export const DEFAULT_ENVELOPES: BudgetEnvelope[] = [
     allocatedAmount: 1200,
     spentAmount: 950,
     icon: 'car',
+    category: 'monthly',
   },
   {
     id: 'family',
@@ -78,6 +80,7 @@ export const DEFAULT_ENVELOPES: BudgetEnvelope[] = [
     allocatedAmount: 2500,
     spentAmount: 500,
     icon: 'graduation-cap',
+    category: 'monthly',
   },
   {
     id: 'emergency',
@@ -87,6 +90,7 @@ export const DEFAULT_ENVELOPES: BudgetEnvelope[] = [
     allocatedAmount: 1500,
     spentAmount: 0,
     icon: 'shield-alert',
+    category: 'saving',
   },
   {
     id: 'saving',
@@ -96,6 +100,7 @@ export const DEFAULT_ENVELOPES: BudgetEnvelope[] = [
     allocatedAmount: 1000,
     spentAmount: 0,
     icon: 'piggy-bank',
+    category: 'saving',
   },
 ];
 

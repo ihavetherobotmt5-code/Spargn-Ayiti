@@ -54,13 +54,17 @@ export interface IncomeTransaction {
 }
 
 export interface BudgetEnvelope {
-  id: string; // 'food' | 'transport' | 'family' | 'emergency' | 'saving'
+  id: string; // 'food' | 'transport' | 'family' | 'emergency' | 'saving' or custom
   name: string; // French name
   nameKreyol: string; // Kreyòl name
   percentage: number; // Applied percentage
   allocatedAmount: number; // Lifetime cumulative allocated amount in budget's base currency (HTG or stable)
   spentAmount: number; // Lifetime cumulative spent amount in budget's base currency (HTG)
   icon: string; // Lucide icon identifier
+  category?: 'monthly' | 'saving' | 'event' | 'subscription' | 'project' | 'custom';
+  recurringAmount?: number;
+  recurringCurrency?: CurrencyCode;
+  recurringNextDate?: string;
 }
 
 export interface DistributionProfile {
