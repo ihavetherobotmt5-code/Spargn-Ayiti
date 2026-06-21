@@ -1,36 +1,76 @@
 # ROADMAP.md - Feuille de Route de Spargn Ayiti
 
-Ce document orchestre le développement futur de **Spargn Ayiti**, structuré par niveaux de priorités pour guider l'évolution de l'application tout en maintenant sa stabilité légendaire.
+Ce document orchestre le développement futur de **Spargn Ayiti**, structuré par versions jalonnées pour guider l'évolution de l'application de façon progressive, maîtrisée, et centrée exclusivement sur les besoins réels des utilisateurs haïtiens.
 
 ---
 
-## 🟥 Priorité 1 : Améliorations Essentielles & Stabilité (Court Terme)
+## 🟥 Étape Active : Version 1.3 - Budget Intelligent & Enveloppes Flexibles (Court Terme)
 
-* **Planificateur de Budget Simplifié (Budget Planner) :**
-  * Interface pour renseigner ses revenus récurrents et ses dépenses fixes/variables sous forme d'enveloppes budgétaires adaptées à l'économie haïtienne.
-* **Persistance Locale Robuste (Offline-first) :**
-  * S'assurer que toutes les données de budget et d'épargne saisies par l'utilisateur soient sauvegardées localement de manière persistante face aux coupures de courant et réseaux mobiles instables.
-* **Optimisation de Pyas Chatbot :**
-  * Affiner les invites système de Gemini pour garantir des réponses privilégiant toujours un langage financier simple, des exemples locaux, et le Kreyòl haïtien par défaut.
+L'économie haïtienne étant caractérisée par des revenus fluides et asymétriques (commerce, travail journalier, transferts de la diaspora, etc.), le budget traditionnel mensuel fixe est inadapté. Cette version introduit un paradigme centré sur les flux d'entrées d'argent instantanés distribués dans des enveloppes budgétaires dynamiques.
+
+### Fonctionnalités Clés :
+* **Saisie Rapide d'Entrées d'Argent :**
+  * Saisie simplifiée du montant reçu.
+  * Sélection de la provenance : *Commerce, Travail Journalier, Transfert (Pòtoprens/Diaspora), Salaire fixe, Autre*.
+  * Historique d'activité des flux de revenus.
+* **Enveloppes Budgétaires par Pourcentages (Répartition Automatique) :**
+  * **Nourriture (Manje) :** 35% par défaut.
+  * **Transport (Wout) :** 15% par défaut.
+  * **Écolage / Famille (Lekòl/Fanmi) :** 20% par défaut.
+  * **Fon Degaje (Fonds d'urgence) :** 15% par défaut (sécurité critique face aux imprévus).
+  * **Objectif d'Épargne (Spargn) :** 15% par défaut.
+  * Flexibilité totale pour ajuster individuellement ces pourcentages selon l'évolution de la situation de l'utilisateur.
+* **Score de Santé Financière (Santé Finansyè) ⭐ :**
+  * Indicateur dynamique sur 100 points, mesurant les saines habitudes (régularité de l'épargne, alimentation du fonds d'urgence "Fon Degaje", respect des enveloppes de dépenses) plutôt que le niveau absolu de richesse.
 
 ---
 
-## 🟨 Priorité 2 : Éducation Financière & Utilitaire (Moyen Terme)
+## 🟨 Étape Suivante : Version 1.4 - Objectifs d'Épargne & Motivation Culturelle (Moyen Terme)
 
-* **Module d'Éducation Interactive (Lekòl Spargn) :**
-  * Création de mini-fiches conseils ou de quiz amusants intégrés sur les bases de la finance personnelle (les pièges du crédit usuraire, bâtir un fonds d'urgence "fon degaje", comprendre l'inflation).
-* **Simulateur de Sòl Virtuel :**
-  * Un module interactif démontrant le fonctionnement mathématique d'une "sòl" (tontine rotative) pour aider l'utilisateur à comparer l'épargne individuelle versus l'adhésion à une sòl traditionnelle en toute sécurité.
-* **Exports de Données :**
-  * Option pour exporter son carnet de contributions d'épargne sous un format imprimable simple ou partageable (PDF ou tableur CSV) pour faciliter la tenue de comptes.
+Rendre l'acte d'épargner gratifiant et ludique en renforçant sentiment d'accomplissement de l'utilisateur pour consolider l'habitude quotidienne.
+
+### Fonctionnalités Clés :
+* **Gestion et Suivi Visuel Précis :**
+  * Barre de progression et visualisations fluides de la proximité du but final.
+* **Nudges & Encouragements en Créole Haïtien :**
+  * Célébrations locales chaleureuses exploitant des proverbes imagés (*"Pwoblèm pa gen klaxon"*, *"Gwo kouto pa koupe dlo"*) pour encourager l'effort individuel.
+* **Streaks (Régularité) 🔥 :**
+  * Système de suivi des jours ou semaines consécutives de tenue de compte pour encourager une routine de connexion régulière.
 
 ---
 
-## 🟩 Priorité 3 : Expansion & Connectivité de Demain (Long Terme)
+## 🟨 Étape Intermédiaire : Version 1.5 - Tableau de Bord Interactif & Statistiques Épurées
 
-* **Simulation et Maquettes de Transactions Mobiles :**
-  * Intégration de maquettes d'expériences utilisateur simulant la passerelle avec des portefeuilles électroniques populaires en Haïti (MonCash, Natcash) pour faciliter les relevés virtuels d'épargne.
-* **Alertes de Rappels Écrits :**
-  * Systèmes de notifications au sein de l'application ou suggestions de messages types pour se rappeler de verser sa contribution hebdomadaire au budget ou à la sòl.
-* **Mode Économie de Données :**
-  * Un interrupteur permettant de limiter le chargement des images et de réduire la consommation de données Internet du chatbot Pyas pour économiser les forfaits mobiles des utilisateurs.
+Permettre à l'utilisateur d'analyser ses habitudes de consommation d'un seul coup d'œil pour identifier les fuites de capitaux.
+
+### Fonctionnalités Clés :
+* **Répartition des Dépenses par Catégorie :**
+  * Graphiques circulaires ou à barres minimalistes traduisant visuellement les sorties d'argent par enveloppe.
+* **Résumé Hebdomadaire & Mensuel :**
+  * Bilans synthétiques sur le comportement des dépenses et de l'épargne au cours de la période.
+
+---
+
+## 🟩 Étape Avancée : Version 1.6 - Pyas Chatbot Contextuel & Alertes Prédictives
+
+Donner à l'assistant virtuel IA (Pyas) une visibilité complète sur la comptabilité de l'utilisateur afin de prodiguer des recommandations hyper-personnalisées.
+
+### Fonctionnalités Clés :
+* **Conseils IA Contextuels :**
+  * Pyas réagit directement aux chiffres réels (*"Mwen wè ou deja itilize 80% nan anvlòp transpò w la pou semèn sa. Fè atansyon !"*).
+* **Alertes Intelligentes & Prévisions :**
+  * Calcul de la date d'atteinte probable d'un objectif d'épargne si le rythme actuel est maintenu.
+
+---
+
+## 🟩 Étape Finale : Version 1.7 - Sòl Virtuelle (Tontines Haïtiennes Traditionnelles)
+
+Digitaliser et guider scientifiquement le mécanisme informel de confiance collective le plus utilisé en Haïti.
+
+### Fonctionnalités Clés :
+* **Planificateur de Sòl Virtuel :**
+  * Paramétrage des contributions fixes, désignation du nombre de mains ("men"), et planification du calendrier de tirage.
+* **Simulateur d'Opportunités :**
+  * Comparatif chiffré des avantages et risques d'une adhésion à une sòl traditionnelle par rapport à une épargne autonome réinvestie.
+* **Rappels des Cycles de Versements :**
+  * Notifications régulières pour se préparer à honorer sa main ou collecter sa caisse.

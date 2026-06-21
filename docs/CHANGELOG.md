@@ -4,6 +4,24 @@ Toutes les modifications notables apportées au projet **Spargn Ayiti** seront c
 
 ---
 
+## [1.2.5] - 2026-06-20
+### Ajouté / Modifié
+- **Restructuration de la Feuille de Route (`ROADMAP.md` / `docs/ROADMAP.md`) :**
+  - Alignement des priorités de développement sur un cadre stricte de versions jalonnées de v1.3 à v1.7.
+  - Définition fonctionnelle du **Budget Intelligent (v1.3)** basé sur de petites rentrées fluides avec Enveloppes budgétaires automatiques ajustables et introduction du **Score de Santé Financière**.
+  - Intégration de la philosophie d'ingénierie produit senior (*Product Engineer*) suggérant des évolutions justifiées par la valeur ajoutée pour l'utilisateur, préservant la rétrocompatibilité et favorisant la persistance locale *Offline-First* résiliente.
+
+---
+
+## [1.2.0] - 2026-06-20
+### Ajouté
+- Établissement de la documentation technique et d'engagements à la racine :
+  - **`ARCHITECTURE.md`** : Guide complet sur l'architecture technique, structure des dossiers, conventions de nommage et sécurité par code PIN.
+  - **`USER_JOURNEYS.md`** : Modélisation des parcours d'utilisation types (Onboarding, Routine Quotidienne rapide de 15 secondes, Analyse Hebdomadaire guidée par Pyas).
+- Mise à jour du centre de documentation dans `/docs/` avec les nouveaux guides de planification technique et produit.
+
+---
+
 ## [1.1.0] - 2026-06-20
 ### Ajouté
 - Création de la documentation structurelle à la racine du projet :
