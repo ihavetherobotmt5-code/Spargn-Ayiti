@@ -49,6 +49,7 @@ interface AppContextType {
   deleteEnvelope: (id: string) => void;
   updateEnvelopeDeposit: (id: string, newAllocated: number) => void;
   updateEnvelopeSpent: (id: string, newSpent: number) => void;
+  updateEnvelope: (id: string, updates: Partial<BudgetEnvelope>) => void;
   setEnvelopes: React.Dispatch<React.SetStateAction<BudgetEnvelope[]>>;
   addIncomeTransaction: (transaction: Omit<IncomeTransaction, 'id' | 'splits'>, autoSplit?: boolean) => void;
   deleteIncomeTransaction: (id: string) => void;
@@ -559,6 +560,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  const updateEnvelope = (id: string, updates: Partial<BudgetEnvelope>) => {
+    setEnvelopes(prev => prev.map(env => {
+      if (env.id === id) {
+        return {
+          ...env,
+          ...updates
+        };
+      }
+      return env;
+    }));
+  };
+
   const addIncomeTransaction = (transaction: Omit<IncomeTransaction, 'id' | 'splits'>, autoSplit: boolean = true) => {
     const amountHTG = FinancialEngine.convertToHTG(transaction.amount, transaction.currency, rates);
 
@@ -774,6 +787,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deleteEnvelope,
       updateEnvelopeDeposit,
       updateEnvelopeSpent,
+      updateEnvelope,
       setEnvelopes,
       addIncomeTransaction,
       deleteIncomeTransaction,

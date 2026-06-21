@@ -96,6 +96,17 @@ export const BudgetIntelligent: React.FC = () => {
   const [isEditingAvailableFunds, setIsEditingAvailableFunds] = useState(false);
   const [newAvailableFundsValue, setNewAvailableFundsValue] = useState('');
 
+  // Edit Envelope general properties state
+  const [showEditEnvelopePropsModal, setShowEditEnvelopePropsModal] = useState<string | null>(null);
+  const [editEnvelopeName, setEditEnvelopeName] = useState('');
+  const [editEnvelopeNameKreyol, setEditEnvelopeNameKreyol] = useState('');
+  const [editEnvelopeIcon, setEditEnvelopeIcon] = useState('utensils');
+  const [editEnvelopeCategory, setEditEnvelopeCategory] = useState<'monthly' | 'saving' | 'event' | 'subscription' | 'project' | 'custom'>('custom');
+  const [editEnvelopeIsRecurring, setEditEnvelopeIsRecurring] = useState(false);
+  const [editEnvelopeRecurringAmount, setEditEnvelopeRecurringAmount] = useState('');
+  const [editEnvelopeRecurringCurrency, setEditEnvelopeRecurringCurrency] = useState<'HTG' | 'USD' | 'EUR' | 'USDT'>('HTG');
+  const [editEnvelopeRecurringNextDate, setEditEnvelopeRecurringNextDate] = useState('');
+
   // Expense Form State
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseNote, setExpenseNote] = useState('');
@@ -276,6 +287,30 @@ export const BudgetIntelligent: React.FC = () => {
     setNewSpentAmount('');
     setShowEditSpentModal(null);
     showToast(language === 'HT' ? 'Depans yo jwenn chanjman avèk siksè!' : 'Dépenses de l\'enveloppe mises à jour avec succès !', 'success');
+  };
+
+  const handleEditEnvelopePropsSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showEditEnvelopePropsModal) return;
+    
+    if (!editEnvelopeName.trim() || !editEnvelopeNameKreyol.trim()) {
+      showToast(language === 'HT' ? 'Tanpri ranpli tout non yo' : 'Veuillez remplir tous les champs de nom', 'error');
+      return;
+    }
+
+    const updates: Partial<BudgetEnvelope> = {
+      name: editEnvelopeName.trim(),
+      nameKreyol: editEnvelopeNameKreyol.trim(),
+      category: editEnvelopeCategory,
+      icon: editEnvelopeIcon,
+      recurringAmount: editEnvelopeIsRecurring ? parseFloat(editEnvelopeRecurringAmount) || undefined : undefined,
+      recurringCurrency: editEnvelopeIsRecurring ? editEnvelopeRecurringCurrency : undefined,
+      recurringNextDate: editEnvelopeIsRecurring ? editEnvelopeRecurringNextDate : undefined,
+    };
+
+    updateEnvelope(showEditEnvelopePropsModal, updates);
+    setShowEditEnvelopePropsModal(null);
+    showToast(language === 'HT' ? 'Karyakteristik anvlòp la mete ajou avèk siksè!' : 'Propriétés de l\'enveloppe mises à jour avec succès !', 'success');
   };
 
   const handleAddFundsSubmit = (e: React.FormEvent) => {
@@ -493,7 +528,7 @@ export const BudgetIntelligent: React.FC = () => {
           <div className="flex justify-between items-center text-neutral-250 text-xs font-black uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
               <span>💰</span>
-              {language === 'HT' ? 'Sòl ki Disponib (Pòtfe)' : 'Solde disponible (Portefeuille)'}
+              {language === 'HT' ? 'Lajan ki disponib' : 'Argent disponible'}
             </span>
             <button
               type="button"
@@ -561,12 +596,12 @@ export const BudgetIntelligent: React.FC = () => {
             {language === 'HT' ? 'Kòb nan anvlòp yo' : 'Argent dans les enveloppes'}
           </div>
           <div className="text-2xl md:text-3xl font-black text-amber-500 font-mono">
-            {formatMoney(totalAllocated, 'HTG')}
+            {formatMoney(envelopes.reduce((sum, env) => sum + Math.max(0, env.allocatedAmount - env.spentAmount), 0), 'HTG')}
           </div>
           <p className="text-[10.5px] text-neutral-400 font-medium">
             {language === 'HT' 
-              ? 'Gwo sòm lajan ou mete sou kote pou chak anvlòp kounye a.' 
-              : 'Cumul total de l\'argent réservé et affecté à l\'ensemble de vos enveloppes.'}
+              ? 'Lajan ki rete nan anvlòp yo kounye a (sa ou depoze mwens sa ou depanse).' 
+              : 'Cumul total de l\'argent restant disponible dans vos enveloppes (dépôts moins dépenses).'}
           </p>
         </div>
       </div>
@@ -1112,6 +1147,24 @@ export const BudgetIntelligent: React.FC = () => {
                         }`}>
                           {progress}% {language === 'HT' ? 'Depanse' : 'Dépensé'}
                         </span>
+
+                        <button
+                          onClick={() => {
+                            setEditEnvelopeName(env.name);
+                            setEditEnvelopeNameKreyol(env.nameKreyol || '');
+                            setEditEnvelopeIcon(env.icon || 'utensils');
+                            setEditEnvelopeCategory(env.category || 'custom');
+                            setEditEnvelopeIsRecurring(!!env.recurringAmount);
+                            setEditEnvelopeRecurringAmount(env.recurringAmount?.toString() || '');
+                            setEditEnvelopeRecurringCurrency(env.recurringCurrency || 'HTG');
+                            setEditEnvelopeRecurringNextDate(env.recurringNextDate || '');
+                            setShowEditEnvelopePropsModal(env.id);
+                          }}
+                          className="p-1 text-neutral-500 hover:text-amber-400 rounded hover:bg-white/5 transition cursor-pointer"
+                          title={language === 'HT' ? 'Chanje Anvlòp sa' : 'Modifier cette enveloppe'}
+                        >
+                          <Edit2 size={12} />
+                        </button>
 
                         <button
                           onClick={() => {
@@ -1791,6 +1844,219 @@ export const BudgetIntelligent: React.FC = () => {
                 className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-xs uppercase cursor-pointer"
               >
                 {language === 'HT' ? 'Chanje kounye a' : 'Confirmer'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* --- EDIT ENVELOPE PROPERTIES MODAL --- */}
+      {showEditEnvelopePropsModal && (
+        <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
+          <form 
+            onSubmit={handleEditEnvelopePropsSubmit}
+            className="bg-neutral-900 border border-white/10 p-5 rounded-2xl max-w-sm w-full relative space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]"
+          >
+            <h3 className="text-base font-black text-amber-400 flex items-center gap-1.5">
+              ✏️ {language === 'HT' ? 'Chanje Anvlòp la' : 'Modifier l\'enveloppe'}
+            </h3>
+
+            <div className="space-y-1">
+              <label className="text-[10.5px] font-bold text-neutral-400">
+                {language === 'HT' ? 'Non anvlòp an (Franse)' : 'Nom de l\'enveloppe (Français)'}
+              </label>
+              <input
+                type="text"
+                required
+                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-sans"
+                value={editEnvelopeName}
+                onChange={(e) => setEditEnvelopeName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10.5px] font-bold text-neutral-400">
+                {language === 'HT' ? 'Non anvlòp an (Kreyòl)' : 'Nom de l\'enveloppe (Kreyòl)'}
+              </label>
+              <input
+                type="text"
+                required
+                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-sans"
+                value={editEnvelopeNameKreyol}
+                onChange={(e) => setEditEnvelopeNameKreyol(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10.5px] font-bold text-neutral-400">Icône / Ikon</label>
+              <select
+                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500"
+                value={editEnvelopeIcon}
+                onChange={(e) => setEditEnvelopeIcon(e.target.value)}
+              >
+                <option value="utensils">🍚 {language === 'HT' ? 'Manje / Nouviti' : 'Nourriture'}</option>
+                <option value="car">🚗 {language === 'HT' ? 'Transpò / Vwayaj' : 'Transport'}</option>
+                <option value="graduation-cap">🎓 {language === 'HT' ? 'Lekòl / Edikasyon' : 'Scolarité/École'}</option>
+                <option value="piggy-bank">💰 {language === 'HT' ? 'Epany / Sere' : 'Épargne/Investissement'}</option>
+                <option value="home">🏠 {language === 'HT' ? 'Kay / Lwaye' : 'Logement/Maison'}</option>
+                <option value="shopping-bag">🛍️ {language === 'HT' ? 'Acha / Boutik' : 'Courses/Shopping'}</option>
+                <option value="shield-alert">🚨 {language === 'HT' ? 'Ijans oswa Devwa' : 'Urgence/Sécurité'}</option>
+              </select>
+            </div>
+
+            {/* Category selection */}
+            <div className="space-y-1.5 pt-1">
+              <label className="text-[10.5px] font-bold text-neutral-400">Type d'Enveloppe / Kalite Anvlòp</label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className={`p-2 bg-neutral-950/40 rounded-xl border flex items-center gap-1 cursor-pointer text-[9.5px] font-black ${editEnvelopeCategory === 'monthly' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-white/5 text-neutral-400 hover:border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="editCategory"
+                    checked={editEnvelopeCategory === 'monthly'}
+                    onChange={() => setEditEnvelopeCategory('monthly')}
+                    className="hidden"
+                  />
+                  <span>🏡 {language === 'HT' ? 'Chak Mwa' : 'Mensuel'}</span>
+                </label>
+
+                <label className={`p-2 bg-neutral-950/40 rounded-xl border flex items-center gap-1 cursor-pointer text-[9.5px] font-black ${editEnvelopeCategory === 'saving' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-white/5 text-neutral-400 hover:border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="editCategory"
+                    checked={editEnvelopeCategory === 'saving'}
+                    onChange={() => setEditEnvelopeCategory('saving')}
+                    className="hidden"
+                  />
+                  <span>💰 {language === 'HT' ? 'Epany' : 'Épargne'}</span>
+                </label>
+
+                <label className={`p-2 bg-neutral-950/40 rounded-xl border flex items-center gap-1 cursor-pointer text-[9.5px] font-black ${editEnvelopeCategory === 'event' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-white/5 text-neutral-400 hover:border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="editCategory"
+                    checked={editEnvelopeCategory === 'event'}
+                    onChange={() => setEditEnvelopeCategory('event')}
+                    className="hidden"
+                  />
+                  <span>🎉 {language === 'HT' ? 'Evènman' : 'Événement'}</span>
+                </label>
+
+                <label className={`p-2 bg-neutral-950/40 rounded-xl border flex items-center gap-1 cursor-pointer text-[9.5px] font-black ${editEnvelopeCategory === 'subscription' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-white/5 text-neutral-400 hover:border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="editCategory"
+                    checked={editEnvelopeCategory === 'subscription'}
+                    onChange={() => {
+                      setEditEnvelopeCategory('subscription');
+                      setEditEnvelopeIsRecurring(true);
+                    }}
+                    className="hidden"
+                  />
+                  <span>📅 {language === 'HT' ? 'Abònman' : 'Abonnement'}</span>
+                </label>
+
+                <label className={`p-2 bg-neutral-950/40 rounded-xl border flex items-center gap-1 cursor-pointer text-[9.5px] font-black ${editEnvelopeCategory === 'project' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-white/5 text-neutral-400 hover:border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="editCategory"
+                    checked={editEnvelopeCategory === 'project'}
+                    onChange={() => setEditEnvelopeCategory('project')}
+                    className="hidden"
+                  />
+                  <span>🚀 {language === 'HT' ? 'Pwojè' : 'Projet'}</span>
+                </label>
+
+                <label className={`p-2 bg-neutral-950/40 rounded-xl border flex items-center gap-1 cursor-pointer text-[9.5px] font-black ${editEnvelopeCategory === 'custom' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-white/5 text-neutral-400 hover:border-white/10'}`}>
+                  <input
+                    type="radio"
+                    name="editCategory"
+                    checked={editEnvelopeCategory === 'custom'}
+                    onChange={() => setEditEnvelopeCategory('custom')}
+                    className="hidden"
+                  />
+                  <span>📦 {language === 'HT' ? 'Pèsonèl' : 'Perso'}</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Recurring payment fields */}
+            <div className="space-y-2 p-3 bg-neutral-950/60 rounded-xl border border-white/5">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="editIsRecurringCheck"
+                  checked={editEnvelopeIsRecurring}
+                  onChange={(e) => {
+                    setEditEnvelopeIsRecurring(e.target.checked);
+                    if (e.target.checked && editEnvelopeRecurringCurrency === undefined) {
+                      setEditEnvelopeRecurringCurrency('HTG');
+                    }
+                  }}
+                  className="w-4 h-4 rounded text-amber-500 bg-neutral-950 border-white/10 accent-amber-500 cursor-pointer"
+                />
+                <label htmlFor="editIsRecurringCheck" className="text-[11px] font-extrabold text-neutral-200 cursor-pointer selection:bg-transparent">
+                  🔁 {language === 'HT' ? 'Pajman regilyè / Abònman' : 'Paiement récurrent / Échéance'}
+                </label>
+              </div>
+
+              {editEnvelopeIsRecurring && (
+                <div className="space-y-3 pt-2 animate-in slide-in-from-top-1 duration-200">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[9.5px] font-bold text-neutral-400">{language === 'HT' ? 'Kantite' : 'Montant'}</label>
+                      <input
+                        type="number"
+                        placeholder="1000"
+                        className="w-full bg-neutral-950 border border-white/10 text-white p-2.5 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
+                        value={editEnvelopeRecurringAmount}
+                        onChange={(e) => setEditEnvelopeRecurringAmount(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9.5px] font-bold text-neutral-400">{language === 'HT' ? 'Lajan' : 'Devise'}</label>
+                      <select
+                        className="w-full bg-neutral-950 border border-white/10 text-white p-2.5 rounded-xl text-[11px] outline-none focus:border-amber-500 font-mono"
+                        value={editEnvelopeRecurringCurrency}
+                        onChange={(e) => setEditEnvelopeRecurringCurrency(e.target.value as any)}
+                      >
+                        <option value="HTG">HTG</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="USDT">USDT</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9.5px] font-bold text-neutral-400">
+                      {language === 'HT' ? 'Dat pwochen peman an' : 'Prochaine échéance'}
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full bg-neutral-950 border border-white/10 text-white p-2.5 rounded-xl text-xs outline-none focus:border-amber-500 font-mono font-sans"
+                      value={editEnvelopeRecurringNextDate}
+                      onChange={(e) => setEditEnvelopeRecurringNextDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditEnvelopePropsModal(null);
+                }}
+                className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-750 text-white font-bold rounded-xl text-xs uppercase cursor-pointer"
+              >
+                Anile
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-xs uppercase cursor-pointer"
+              >
+                {language === 'HT' ? 'Sove' : 'Enregistrer'}
               </button>
             </div>
           </form>
