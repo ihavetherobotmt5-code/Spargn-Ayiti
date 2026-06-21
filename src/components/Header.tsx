@@ -4,8 +4,8 @@ import { TRANSLATIONS } from '../lib/translations';
 import { PiggyBank, Bell, Settings } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'dashboard' | 'goals' | 'settings';
-  setActiveTab: (tab: 'dashboard' | 'goals' | 'settings') => void;
+  activeTab: 'dashboard' | 'goals' | 'vision' | 'settings';
+  setActiveTab: (tab: 'dashboard' | 'goals' | 'vision' | 'settings') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {

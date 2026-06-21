@@ -111,23 +111,18 @@ export class FinancialEngine {
    */
   static computeSplits(
     amount: number,
-    profile: DistributionProfile
+    profile: DistributionProfile,
+    allEnvelopes: { id: string }[] = []
   ): Record<string, number> {
     const splits: Record<string, number> = {};
-    let totalAssigned = 0;
-    const envelopeIds = Object.keys(profile.percentages);
+    const targetEnvelopes = allEnvelopes.length > 0 
+      ? allEnvelopes.map(e => e.id)
+      : Object.keys(profile.percentages);
 
-    envelopeIds.forEach((id, index) => {
-      const percentage = profile.percentages[id] || 0;
-      if (index === envelopeIds.length - 1) {
-        // Assign remainder to avoid floating-point loss and guarantee total equals exactly amount
-        const currentAmount = Number((amount - totalAssigned).toFixed(2));
-        splits[id] = Math.max(0, currentAmount);
-      } else {
-        const share = Number(((amount * percentage) / 100).toFixed(2));
-        splits[id] = Math.max(0, share);
-        totalAssigned += share;
-      }
+    targetEnvelopes.forEach(id => {
+      const percentage = profile.percentages[id] !== undefined ? profile.percentages[id] : 0;
+      const share = Number(((amount * percentage) / 100).toFixed(2));
+      splits[id] = Math.max(0, share);
     });
 
     return splits;

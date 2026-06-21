@@ -420,6 +420,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-neutral-400 font-semibold text-sm mt-3 flex items-center gap-1">
                 ≈ {totalSavedUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
               </p>
+
+              {totalSavedHTG === 0 && (
+                <p className="text-neutral-500 font-semibold text-xs mt-2.5 italic flex items-center gap-1.5 bg-neutral-950/40 p-2.5 rounded-xl border border-white/5 max-w-sm">
+                  💡 {language === 'HT' ? 'Chak gwo reyalizasyon kòmanse ak premye goud la.' : 'Chaque grand projet commence par une première gourde.'}
+                </p>
+              )}
             </div>
 
             <div className="w-full md:w-5/12 space-y-2">
@@ -933,17 +939,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {goals.length === 0 ? (
-          <div className="text-center py-12 bg-neutral-900/40 rounded-2xl border-2 border-dashed border-white/10 p-6 flex flex-col items-center justify-center">
-            <span className="text-4xl mb-3">🏔️</span>
-            <p className="text-neutral-400 mb-4 font-medium text-sm">
-              {t.noGoalsYet}
-            </p>
-            <button
-              onClick={onOpenAddGoal}
-              className="bg-amber-500 text-neutral-950 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:bg-amber-400 active:scale-95 shadow-md"
-            >
-              {t.createFirstGoal}
-            </button>
+          <div className="p-6 md:p-8 bg-gradient-to-br from-neutral-900/40 via-neutral-900/20 to-amber-950/20 rounded-3xl border border-white/5 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6 md:gap-8">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="text-4xl md:text-5xl p-5 bg-neutral-950/60 rounded-2xl border border-white/5 shadow-lg text-center flex items-center justify-center select-none scale-100 hover:scale-105 transition-transform duration-300">
+              🎯
+            </div>
+
+            <div className="space-y-4 flex-1 text-center md:text-left">
+              <div className="space-y-1">
+                <h4 className="text-lg md:text-xl font-extrabold text-amber-300 flex items-center justify-center md:justify-start gap-1.5">
+                  👋 {language === 'HT' ? 'Byenvini nan Spargn Ayiti!' : 'Bienvenue sur Spargn Ayiti !'}
+                </h4>
+                <p className="text-xs md:text-sm text-neutral-400 font-semibold leading-relaxed max-w-xl">
+                  {language === 'HT' 
+                    ? 'Tout kòmanse ak premye objektif ou. Fixe yon vizyon klè pou rèv ou vle reyalize yo, kit se epay pou ijans, pwojè, oswa yon rèv pèsonèl.' 
+                    : 'Tout commence par votre premier objectif. Fixez-vous une vision claire pour vos projets, futilités, événements ou votre épargne de secours.'}
+                </p>
+              </div>
+
+              <p className="text-[11px] text-amber-400/80 font-black tracking-wider uppercase">
+                👇 {language === 'HT' ? 'Chwazi yon rèv ou vle reyalize' : 'Sélectionnez un rêve à réaliser dès maintenant'} :
+              </p>
+
+              <button
+                onClick={onOpenAddGoal}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-neutral-950 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-200 active:scale-95 shadow-[0_4px_15px_rgba(242,202,80,0.25)] cursor-pointer"
+              >
+                <span>🎯</span>
+                {language === 'HT' ? 'Kreye premye objektif mwen' : 'Créer mon premier objectif'}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

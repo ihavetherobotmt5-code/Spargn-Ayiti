@@ -82,3 +82,18 @@ export interface FinancialState {
   financialHealthScore: number;
 }
 
+// --- v1.4: Mon Carnet d'Avenir / Vision Financière ---
+export type VisionSection = 'notes' | 'ideas' | 'projects' | 'prevision' | 'wishlist';
+
+export interface VisionItem {
+  id: string;
+  title: string;
+  content: string;
+  section: VisionSection;
+  cost?: number;
+  currency?: CurrencyCode;
+  targetDate?: string;
+  createdDate: string;
+}
+
+

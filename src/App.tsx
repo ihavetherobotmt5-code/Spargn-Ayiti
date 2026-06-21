@@ -10,7 +10,8 @@ import { AddContributionDialog } from './components/AddContributionDialog';
 import { PinLockScreen } from './components/PinLockScreen';
 import { PyasChatbot } from './components/PyasChatbot';
 import { TRANSLATIONS } from './lib/translations';
-import { LayoutDashboard, Target, Settings, Award } from 'lucide-react';
+import { LayoutDashboard, Target, Settings, Award, Sparkles } from 'lucide-react';
+import { VisionPage } from './pages/VisionPage';
 
 function AppContent() {
   const { language, isPinLockEnabled, isUnlocked } = useAppContext();
@@ -22,7 +23,7 @@ function AppContent() {
   }
 
   // Tabs navigation
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'goals' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'goals' | 'vision' | 'settings'>('dashboard');
   
   // Drill-down goal details ID state
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -38,7 +39,7 @@ function AppContent() {
   };
 
   // Nav handler
-  const handleTabClick = (tab: 'dashboard' | 'goals' | 'settings') => {
+  const handleTabClick = (tab: 'dashboard' | 'goals' | 'vision' | 'settings') => {
     setActiveTab(tab);
     // When clicking any main tab, reset drill-down state so the tab loads from its main list view
     setSelectedGoalId(null);
@@ -83,7 +84,10 @@ function AppContent() {
           )
         )}
 
-        {/* TAB 3: CONFIGURATIONS */}
+        {/* TAB 3: CARNET D'AVENIR */}
+        {activeTab === 'vision' && <VisionPage />}
+
+        {/* TAB 4: CONFIGURATIONS */}
         {activeTab === 'settings' && <SettingsPage />}
 
       </main>
@@ -104,7 +108,7 @@ function AppContent() {
 
       {/* BOTTOM TAB-BAR NAVIGATION PANEL */}
       <nav className="fixed bottom-0 w-full z-40 bg-neutral-900/90 backdrop-blur-xl border-t border-white/10 rounded-t-2xl shadow-2xl">
-        <div className="flex justify-around items-center w-full h-20 max-w-lg mx-auto px-4 pb-safe">
+        <div className="flex justify-around items-center w-full h-20 max-w-xl mx-auto px-4 pb-safe">
           
           <button 
             onClick={() => handleTabClick('dashboard')}
@@ -131,6 +135,20 @@ function AppContent() {
             <Target size={20} />
             <span className="text-[10px] font-bold tracking-wider mt-1.5 uppercase">
               Goals
+            </span>
+          </button>
+
+          <button 
+            onClick={() => handleTabClick('vision')}
+            className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all outline-none border-none cursor-pointer ${
+              activeTab === 'vision' 
+                ? 'text-amber-400 font-bold bg-amber-500/5 px-5 py-2 border border-amber-500/10' 
+                : 'text-neutral-400 hover:text-amber-400'
+            }`}
+          >
+            <Sparkles size={20} />
+            <span className="text-[10px] font-bold tracking-wider mt-1.5 uppercase">
+              {language === 'HT' ? 'Kaye' : 'Carnet'}
             </span>
           </button>
 

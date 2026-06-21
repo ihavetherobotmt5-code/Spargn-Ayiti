@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Goal, Contribution, ExchangeRates, LanguageCode, CurrencyCode, ContributionFrequency, IncomeTransaction, BudgetEnvelope, DistributionProfile, IncomeSource } from '../types';
+import { Goal, Contribution, ExchangeRates, LanguageCode, CurrencyCode, ContributionFrequency, IncomeTransaction, BudgetEnvelope, DistributionProfile, IncomeSource, VisionItem } from '../types';
 import { FinancialEngine, DEFAULT_ENVELOPES, DEFAULT_PROFILES } from '../lib/FinancialEngine';
 
 interface AppContextType {
@@ -48,12 +48,20 @@ interface AppContextType {
   addEnvelope: (name: string, nameKreyol: string, icon: string, initialAllocated: number, extra?: Partial<BudgetEnvelope>) => void;
   deleteEnvelope: (id: string) => void;
   updateEnvelopeDeposit: (id: string, newAllocated: number) => void;
+  updateEnvelopeSpent: (id: string, newSpent: number) => void;
   setEnvelopes: React.Dispatch<React.SetStateAction<BudgetEnvelope[]>>;
   addIncomeTransaction: (transaction: Omit<IncomeTransaction, 'id' | 'splits'>, autoSplit?: boolean) => void;
+  deleteIncomeTransaction: (id: string) => void;
   addEnvelopeExpense: (envelopeId: string, amount: number, note?: string) => void;
   transferFonDegaje: (sourceId: string, destId: string, amount: number) => void;
   updateProfilePercentages: (profileId: string, percentages: Record<string, number>) => void;
   setActiveProfileId: (id: string) => void;
+
+  // --- Mon Carnet d'Avenir / Vision ---
+  visionItems: VisionItem[];
+  addVisionItem: (item: Omit<VisionItem, 'id' | 'createdDate'>) => VisionItem;
+  deleteVisionItem: (id: string) => void;
+  updateVisionItem: (id: string, updates: Partial<VisionItem>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -67,6 +75,37 @@ const DEFAULT_RATES: ExchangeRates = {
   USDT: 130,
 };
 
+const DEFAULT_VISION_ITEMS: VisionItem[] = [
+  {
+    id: "v_seed_1",
+    title: "Achte yon bon Laptop pou aprann kòde",
+    content: "Mwen vle kòmanse aprann pwogramasyon an kreyòl ak Python/React pou m ka bati bèl aplikasyon pou peyi m. Laptop sa ka koute $500.",
+    section: "wishlist",
+    cost: 500,
+    currency: "USD",
+    createdDate: new Date().toISOString()
+  },
+  {
+    id: "v_seed_2",
+    title: "Mennen manman m vakans Okap",
+    content: "Mwen gen gwo rèv pou m mennen manman m vizite bèl moniman istomerik nou yo tankou Palè Sans-Souci, Sitadèl Laferyè, epi pran de bèl jou detant sou plaj kòkye yo nan Labadi.",
+    section: "projects",
+    cost: 48000,
+    currency: "HTG",
+    targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    createdDate: new Date().toISOString()
+  },
+  {
+    id: "v_seed_3",
+    title: "Depans rad ak soutyen pou Fèt Fin d'Ane",
+    content: "Achte rad nòb ak bèl soulye kwi nwa pou timoun yo fete selebrasyon fen ane lekòl la an gwo.",
+    section: "prevision",
+    cost: 16000,
+    currency: "HTG",
+    createdDate: new Date().toISOString()
+  }
+];
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [completedGoals, setCompletedGoals] = useState<Goal[]>([]);
@@ -76,6 +115,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [userName, setUserName] = useState<string>("Jean-Robert L'Ouverture");
   const [userAvatar, setUserAvatar] = useState<string>("https://lh3.googleusercontent.com/aida-public/AB6AXuASZfbYFSGky0hlFIES1mhVDDKA9MytGAuPtQArL2ivbgyThhmS1VHY9uf7p6XoOmelOtSA5dBhHG6g3gj79xhIsa6wiNALu3yw__mtPY3ycXZlqaXZEMCkqYEX4YdCOIxLSq-yn9XhUDkEiMgyDZhr-Jv0utVxoz5FeEgFl49_icVFrav2JyR7TNSDpej-PTjnMf_PBS5WkWza_bm7Tt1RXoACU8zTwOG42dY6okVlUXt9kBTU4eYhEq-RJlfowpT3zbpnxqucQ06p");
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // --- Mon Carnet d'Avenir ---
+  const [visionItems, setVisionItems] = useState<VisionItem[]>([]);
 
   // --- Budget Intelligent State v1.3 ---
   const [envelopes, setEnvelopes] = useState<BudgetEnvelope[]>(DEFAULT_ENVELOPES);
@@ -167,6 +209,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (data.incomeTransactions) setIncomeTransactions(data.incomeTransactions);
         if (data.activeProfileId) setActiveProfileId(data.activeProfileId);
         if (data.availableFunds !== undefined) setAvailableFunds(data.availableFunds);
+
+        // --- Mon Carnet d'Avenir ---
+        if (data.visionItems) setVisionItems(data.visionItems);
       } catch (e) {
         console.error('Failed to parse storage data:', e);
       }
@@ -241,6 +286,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setContributions({ ...seedContributions, ...completedContributions });
       setRates(DEFAULT_RATES);
       setLanguage('HT');
+      setVisionItems(DEFAULT_VISION_ITEMS);
     }
     setIsLoaded(true);
   }, []);
@@ -262,10 +308,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         profiles,
         incomeTransactions,
         activeProfileId,
-        availableFunds
+        availableFunds,
+        visionItems
       }));
     }
-  }, [goals, completedGoals, contributions, rates, language, userName, userAvatar, isPinLockEnabled, pinCode, envelopes, profiles, incomeTransactions, activeProfileId, availableFunds, isLoaded]);
+  }, [goals, completedGoals, contributions, rates, language, userName, userAvatar, isPinLockEnabled, pinCode, envelopes, profiles, incomeTransactions, activeProfileId, availableFunds, visionItems, isLoaded]);
 
   const addGoal = (goal: Omit<Goal, 'id' | 'createdDate' | 'status'>): Goal => {
     const newGoal: Goal = {
@@ -500,12 +547,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  const updateEnvelopeSpent = (id: string, newSpent: number) => {
+    setEnvelopes(prev => prev.map(env => {
+      if (env.id === id) {
+        return {
+          ...env,
+          spentAmount: newSpent
+        };
+      }
+      return env;
+    }));
+  };
+
   const addIncomeTransaction = (transaction: Omit<IncomeTransaction, 'id' | 'splits'>, autoSplit: boolean = true) => {
     const amountHTG = FinancialEngine.convertToHTG(transaction.amount, transaction.currency, rates);
 
     if (autoSplit) {
       const profile = profiles.find(p => p.id === transaction.profileId) || profiles[0] || DEFAULT_PROFILES[0];
-      const splits = FinancialEngine.computeSplits(transaction.amount, profile);
+      const splits = FinancialEngine.computeSplits(transaction.amount, profile, envelopes);
       
       const newTx: IncomeTransaction = {
         ...transaction,
@@ -514,6 +573,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
 
       setIncomeTransactions(prev => [newTx, ...prev]);
+
+      // Calculate total split allocated sum in transaction currency
+      const totalSplitAmt = Object.values(splits).reduce((sum, val) => sum + val, 0);
+      const totalSplitAmtHTG = FinancialEngine.convertToHTG(totalSplitAmt, transaction.currency, rates);
+      
+      // Save leftover unallocated remainder to availableFunds (Portfolio)
+      const leftoverHTG = Math.max(0, amountHTG - totalSplitAmtHTG);
+      if (leftoverHTG > 0) {
+        setAvailableFunds(prev => prev + leftoverHTG);
+      }
 
       // Apply the splits to envelope allocated amounts, converted into base currency (HTG)
       setEnvelopes(prevEnvs => {
@@ -537,6 +606,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIncomeTransactions(prev => [newTx, ...prev]);
       setAvailableFunds(prev => prev + amountHTG);
     }
+  };
+
+  const deleteIncomeTransaction = (id: string) => {
+    const transaction = incomeTransactions.find(tx => tx.id === id);
+    if (!transaction) return;
+
+    const amountHTG = FinancialEngine.convertToHTG(transaction.amount, transaction.currency, rates);
+
+    if (transaction.splits && Object.keys(transaction.splits).length > 0) {
+      // Calculate total split allocated sum in transaction currency
+      const totalSplitAmt = Object.values(transaction.splits).reduce((sum, val) => sum + val, 0);
+      const totalSplitAmtHTG = FinancialEngine.convertToHTG(totalSplitAmt, transaction.currency, rates);
+      
+      // Deduct unallocated remainder from availableFunds
+      const leftoverHTG = Math.max(0, amountHTG - totalSplitAmtHTG);
+      if (leftoverHTG > 0) {
+        setAvailableFunds(prev => Math.max(0, prev - leftoverHTG));
+      }
+
+      // Revert the splits from envelope allocated amounts, converted into base currency (HTG)
+      setEnvelopes(prevEnvs => {
+        return prevEnvs.map(env => {
+          const share = (transaction.splits && transaction.splits[env.id]) || 0;
+          const shareHTG = FinancialEngine.convertToHTG(share, transaction.currency, rates);
+          return {
+            ...env,
+            allocatedAmount: Math.max(0, env.allocatedAmount - shareHTG)
+          };
+        });
+      });
+    } else {
+      // Revert from availableFunds
+      setAvailableFunds(prev => Math.max(0, prev - amountHTG));
+    }
+
+    setIncomeTransactions(prev => prev.filter(tx => tx.id !== id));
+    showToast(
+      language === 'HT' 
+        ? 'Rantre kòb la efase avèk siksè !' 
+        : 'Revenu retiré et soldes réajustés avec succès !', 
+      'info'
+    );
   };
 
   const addEnvelopeExpense = (envelopeId: string, amount: number, note?: string) => {
@@ -587,6 +698,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const addVisionItem = (item: Omit<VisionItem, 'id' | 'createdDate'>): VisionItem => {
+    const newItem: VisionItem = {
+      ...item,
+      id: 'v_' + Date.now().toString() + '_' + Math.random().toString(36).substring(2, 6),
+      createdDate: new Date().toISOString()
+    };
+    setVisionItems(prev => [newItem, ...prev]);
+    return newItem;
+  };
+
+  const deleteVisionItem = (id: string) => {
+    setVisionItems(prev => prev.filter(v => v.id !== id));
+    showToast(language === 'HT' ? 'Atik la efase nan carnet w !' : 'Changement retiré de votre carnet !', 'info');
+  };
+
+  const updateVisionItem = (id: string, updates: Partial<VisionItem>) => {
+    setVisionItems(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+  };
+
   const clearAllData = () => {
     localStorage.removeItem(STORAGE_KEY);
     setGoals([]);
@@ -601,6 +731,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIncomeTransactions([]);
     setActiveProfileId('normal');
     setAvailableFunds(10500);
+    setVisionItems(DEFAULT_VISION_ITEMS);
   };
 
   return (
@@ -642,12 +773,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addEnvelope,
       deleteEnvelope,
       updateEnvelopeDeposit,
+      updateEnvelopeSpent,
       setEnvelopes,
       addIncomeTransaction,
+      deleteIncomeTransaction,
       addEnvelopeExpense,
       transferFonDegaje,
       updateProfilePercentages,
-      setActiveProfileId
+      setActiveProfileId,
+      visionItems,
+      addVisionItem,
+      deleteVisionItem,
+      updateVisionItem
     }}>
       {children}
       {toast && (

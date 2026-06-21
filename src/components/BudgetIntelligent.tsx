@@ -40,7 +40,9 @@ export const BudgetIntelligent: React.FC = () => {
     addEnvelope,
     deleteEnvelope,
     updateEnvelopeDeposit,
+    updateEnvelopeSpent,
     addIncomeTransaction,
+    deleteIncomeTransaction,
     addEnvelopeExpense,
     transferFonDegaje,
     updateProfilePercentages,
@@ -55,10 +57,14 @@ export const BudgetIntelligent: React.FC = () => {
   const [showExpenseModal, setShowExpenseModal] = useState<string | null>(null); // envelopeId
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [isSlidersOpen, setIsSlidersOpen] = useState(false);
+  const [isAutoSplitOpen, setIsAutoSplitOpen] = useState(false);
 
   // Custom Envelopes Local State
   const [showEditDepositModal, setShowEditDepositModal] = useState<string | null>(null);
   const [newDepositAmount, setNewDepositAmount] = useState('');
+
+  const [showEditSpentModal, setShowEditSpentModal] = useState<string | null>(null);
+  const [newSpentAmount, setNewSpentAmount] = useState('');
 
   const [showAddFundsModal, setShowAddFundsModal] = useState<string | null>(null);
   const [addFundsAmount, setAddFundsAmount] = useState('');
@@ -77,13 +83,18 @@ export const BudgetIntelligent: React.FC = () => {
   const [newEnvelopeRecurringCurrency, setNewEnvelopeRecurringCurrency] = useState<'HTG' | 'USD' | 'EUR' | 'USDT'>('HTG');
   const [newEnvelopeRecurringNextDate, setNewEnvelopeRecurringNextDate] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<'all' | 'monthly' | 'saving' | 'event' | 'subscription' | 'project' | 'custom'>('all');
+  const [envelopeToDelete, setEnvelopeToDelete] = useState<BudgetEnvelope | null>(null);
 
   // Income Form State
   const [incomeAmount, setIncomeAmount] = useState('');
-  const [incomeCurrency, setIncomeCurrency] = useState<'HTG' | 'USD' | 'EUR'>('HTG');
+  const [incomeCurrency, setIncomeCurrency] = useState<'HTG' | 'USD' | 'EUR' | 'USDT'>('HTG');
   const [incomeSource, setIncomeSource] = useState<IncomeSource>('SALARY');
   const [incomeProfileId, setIncomeProfileId] = useState(activeProfileId);
   const [autoSplitIncome, setAutoSplitIncome] = useState(false);
+  const [customIncomeSource, setCustomIncomeSource] = useState('');
+  const [deleteConfirmTxId, setDeleteConfirmTxId] = useState<string | null>(null);
+  const [isEditingAvailableFunds, setIsEditingAvailableFunds] = useState(false);
+  const [newAvailableFundsValue, setNewAvailableFundsValue] = useState('');
 
   // Expense Form State
   const [expenseAmount, setExpenseAmount] = useState('');
@@ -162,8 +173,8 @@ export const BudgetIntelligent: React.FC = () => {
       addExpense: 'Déclarer une dépense',
       transferTitle: 'Transfert entre vos Enveloppes',
       withdrawFund: 'Fonds d\'Urgence / Ajustement',
-      historyTitle: 'Historique des Revenus Ventilés',
-      noHistory: 'Aucun revenu n\'a été ventilé pour le moment.',
+      historyTitle: 'Historique des Revenus',
+      noHistory: 'Aucun revenu enregistré pour le moment.',
       invalidAmount: 'Saisir un montant valide supérieur à 0 !',
       invalidSum: 'La somme de vos pourcentages doit être strictement égale à 100%.',
       successIncome: 'Revenu réparti avec succès entre vos enveloppes !',
@@ -230,9 +241,11 @@ export const BudgetIntelligent: React.FC = () => {
       source: incomeSource,
       date: new Date().toISOString().split('T')[0],
       profileId: incomeProfileId,
+      note: customIncomeSource.trim() || undefined,
     }, autoSplitIncome);
 
     setIncomeAmount('');
+    setCustomIncomeSource('');
     setShowIncomeModal(false);
     showToast(currentLabels.successIncome, 'success');
   };
@@ -249,6 +262,20 @@ export const BudgetIntelligent: React.FC = () => {
     setNewDepositAmount('');
     setShowEditDepositModal(null);
     showToast(language === 'HT' ? 'Depo anvlòp la chanje!' : 'Dépôt de l\'enveloppe mis à jour !', 'success');
+  };
+
+  const handleEditSpentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showEditSpentModal) return;
+    const amountFloat = parseFloat(newSpentAmount);
+    if (isNaN(amountFloat) || amountFloat < 0) {
+      showToast(currentLabels.invalidAmount, 'error');
+      return;
+    }
+    updateEnvelopeSpent(showEditSpentModal, amountFloat);
+    setNewSpentAmount('');
+    setShowEditSpentModal(null);
+    showToast(language === 'HT' ? 'Depans yo jwenn chanjman avèk siksè!' : 'Dépenses de l\'enveloppe mises à jour avec succès !', 'success');
   };
 
   const handleAddFundsSubmit = (e: React.FormEvent) => {
@@ -388,9 +415,12 @@ export const BudgetIntelligent: React.FC = () => {
     updateProfilePercentages(activeProfile.id, currentPercentages);
   };
 
-  // Check sum warning
+  // Check sum warning dynamically including custom envelopes
   const currentSum = activeProfile 
-    ? Object.values(activeProfile.percentages).reduce((sum, p) => sum + p, 0)
+    ? envelopes.reduce((sum, env) => {
+        const val = activeProfile.percentages[env.id] !== undefined ? activeProfile.percentages[env.id] : 0;
+        return sum + val;
+      }, 0)
     : 0;
 
   // Health Rating color styling
@@ -457,35 +487,86 @@ export const BudgetIntelligent: React.FC = () => {
         </div>
       </div>
 
-      {/* 💥 FONDS DISPONIBLE & TOTAL RÉPARTI GRID */}
+      {/* 💥 SOLDE DISPONIBLE & ARGENT DANS LES ENVELOPPES GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-neutral-900/40 p-5 rounded-2xl border border-white/5 shadow-md">
         <div className="space-y-1">
-          <div className="text-neutral-400 text-[10.5px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-            <span className="text-emerald-400">💵</span>
-            {language === 'HT' ? 'Kòb Disponib pou divize' : 'Fonds disponible'}
+          <div className="flex justify-between items-center text-neutral-250 text-xs font-black uppercase tracking-wider">
+            <span className="flex items-center gap-1.5">
+              <span>💰</span>
+              {language === 'HT' ? 'Sòl ki Disponib (Pòtfe)' : 'Solde disponible (Portefeuille)'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setNewAvailableFundsValue(availableFunds.toString());
+                setIsEditingAvailableFunds(true);
+              }}
+              className="text-amber-500 hover:text-amber-400 text-[9px] font-black flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 rounded cursor-pointer transition select-none tracking-normal font-sans"
+            >
+              ✏️ {language === 'HT' ? 'Ajiste' : 'Ajuster'}
+            </button>
           </div>
-          <div className="text-2xl md:text-3xl font-black text-emerald-400 font-mono">
-            {formatMoney(availableFunds, 'HTG')}
-          </div>
+
+          {isEditingAvailableFunds ? (
+            <div className="flex items-center gap-2 pt-1 animate-in fade-in duration-100">
+              <input
+                type="number"
+                value={newAvailableFundsValue}
+                onChange={(e) => setNewAvailableFundsValue(e.target.value)}
+                className="bg-neutral-950 border border-white/10 text-emerald-400 font-mono text-base px-2 py-1 rounded w-32 outline-none focus:border-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const val = parseFloat(newAvailableFundsValue);
+                  if (!isNaN(val) && val >= 0) {
+                    setAvailableFunds(val);
+                    showToast(
+                      language === 'HT' 
+                        ? 'Sòl pòtfe w la ajiste avèk siksè !' 
+                        : 'Le solde disponible a été ajusté avec succès !',
+                      'success'
+                    );
+                  }
+                  setIsEditingAvailableFunds(false);
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 text-neutral-950 font-black px-2 py-1.5 rounded text-[10px] uppercase transition cursor-pointer font-sans"
+              >
+                {language === 'HT' ? 'Sove' : 'Sauf'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditingAvailableFunds(false)}
+                className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-2.5 py-1.5 rounded text-[10px] font-black transition cursor-pointer font-sans"
+              >
+                X
+              </button>
+            </div>
+          ) : (
+            <div className="text-2xl md:text-3xl font-black text-emerald-400 font-mono">
+              {formatMoney(availableFunds, 'HTG')}
+            </div>
+          )}
+          
           <p className="text-[10.5px] text-neutral-400 font-medium">
             {language === 'HT' 
-              ? 'Kòb sa poko nan okenn anvlòp. Ou ka distribiye l manyèlman nan anvlòp ou vle yo ak bouton + ki genyen yo.' 
-              : 'Fonds non répartis restants, prêts à être alloués à vos enveloppes.'}
+              ? 'Lajan ki rete nan pòtfe w ki poko nan okenn anvlòp. Ou ka separe l jan w vle.' 
+              : 'Argent restant en dehors de vos enveloppes, prêt à être réparti.'}
           </p>
         </div>
 
         <div className="space-y-1">
-          <div className="text-neutral-400 text-[10.5px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-            <span className="text-amber-400">📂</span>
-            {language === 'HT' ? 'Kantite Kòb divize nan Anvlòp yo' : 'Total réparti'}
+          <div className="text-neutral-250 text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+            <span>📂</span>
+            {language === 'HT' ? 'Kòb nan anvlòp yo' : 'Argent dans les enveloppes'}
           </div>
-          <div className="text-2xl md:text-3xl font-black text-amber-400 font-mono">
+          <div className="text-2xl md:text-3xl font-black text-amber-500 font-mono">
             {formatMoney(totalAllocated, 'HTG')}
           </div>
           <p className="text-[10.5px] text-neutral-400 font-medium">
             {language === 'HT' 
-              ? 'Se kantite lajan ou mete sou kote pou chak anvlòp kounye a.' 
-              : 'Cumul total des budgets réservés et affectés à vos enveloppes actuellement.'}
+              ? 'Gwo sòm lajan ou mete sou kote pou chak anvlòp kounye a.' 
+              : 'Cumul total de l\'argent réservé et affecté à l\'ensemble de vos enveloppes.'}
           </p>
         </div>
       </div>
@@ -538,23 +619,101 @@ export const BudgetIntelligent: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. MODE DIVISION SELECTOR & SLIDERS */}
-        <div className="glass-card rounded-2xl p-5 border border-white/5 space-y-4 lg:col-span-2 shadow-md relative">
+        {/* 2. DYNAMIC FINANCIAL INSIGHTS & PYAS CORNER */}
+        <div className="glass-card rounded-2xl p-5 border border-white/5 space-y-4 lg:col-span-2 shadow-md flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-900/40 to-neutral-950">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -z-10 translate-x-6 -translate-y-6"></div>
           
-          <div className="flex justify-between items-start">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+              <span className="text-xs font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 w-max">
+                💡 {language === 'HT' ? 'Konsèy Entèlijan' : 'Recommandations Budget'}
+              </span>
+              <span className="text-[10px] font-mono text-neutral-400 font-bold">
+                PRO-{financialHealthScore >= 80 ? 'EXPERT' : 'ACTIVE'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="text-xs font-extrabold text-neutral-200 uppercase tracking-wide">
+                  {language === 'HT' ? '📈 Rezime Anvlòp yo' : '📈 Aperçu de vos Enveloppes'}
+                </h4>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-[11px] font-medium text-neutral-400">
+                    <span>{language === 'HT' ? 'Anvlòp aktif :' : 'Enveloppes actives :'}</span>
+                    <span className="font-mono font-bold text-neutral-200">{envelopes.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] font-medium text-neutral-400">
+                    <span>{language === 'HT' ? 'Anvlòp mwayen :' : 'Enveloppes moyennes :'}</span>
+                    <span className="font-mono font-bold text-neutral-300">
+                      {Math.round(totalAllocated / (envelopes.length || 1))} HTG
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Alert notice inside insights */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-extrabold text-neutral-200 uppercase tracking-wide">
+                  {language === 'HT' ? '🚨 Atansyon Bidjè' : '🚨 Alertes de vigilance'}
+                </h4>
+                {envelopes.some(env => env.spentAmount >= env.allocatedAmount) ? (
+                  <div className="p-2.5 rounded-lg border border-red-500/20 bg-red-950/25 text-[10.5px] font-bold text-red-300 leading-normal">
+                    ⚠️ {language === 'HT' 
+                      ? 'Gen anvlòp ki vid! Fè sipò nan fon degaje a san reta.'
+                      : 'Certaines enveloppes sont vides ! Utilisez le fonds de secours.'}
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-950/25 text-[10.5px] font-bold text-emerald-300 leading-normal text-left">
+                    ✅ {language === 'HT' 
+                      ? 'Tout anvlòp yo gen kòb ladan yo. Sante w rete pwoteje!'
+                      : 'Toutes les enveloppes disposent de fonds. Votre budget tient bon !'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-white/5 space-y-2">
+            <div className="flex items-center gap-2 text-neutral-300 font-black text-xs">
+              <span>🤖</span>
+              <span>{language === 'HT' ? 'Analiz rapid chatbot Pyas :' : 'Conseil financier personnalisé de Pyas :'}</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-neutral-400 font-bold font-sans">
+              {financialHealthScore >= 80 
+                ? (language === 'HT' 
+                    ? "Sante finansyè w ekselan ! Disiplin ou genyen an ap pèmèt ou pran gwo desizyon pwojè san kè kase. Kenbe konsa." 
+                    : "Votre santé financière est excellente ! Discipline et rigueur vous protègent des imprévus. Continuez sur cette lancée.")
+                : financialHealthScore >= 50
+                ? (language === 'HT' 
+                    ? "Sante mwayen. Pousantaj sere kòb ou yo bon men ou ka fè pi plis fòs toujou pou w ka bati pi bon fòs degaje." 
+                    : "Santé budgétaire moyenne. Vos réserves sont acceptables, mais essayez de renforcer votre fonds d'urgence.")
+                : (language === 'HT' 
+                    ? "Atansyon ! Nivo w ba. Li enpòtan pou w evite depans ki pa nesesè yo epi fèm byen vit anvlòp lwazi yo." 
+                    : "Attention, vigilance maximale requise ! Ciblez les dépenses superflues et limitez les enveloppes de loisirs pour vous stabiliser.")
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* HIDDEN FOR BEGINNERS */}
+        <div className="hidden">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
             <div>
               <h3 className="font-bold text-neutral-100 text-sm flex items-center gap-1.5">
                 <Sliders size={16} className="text-amber-400" />
-                {currentLabels.activeProfile}
+                {language === 'HT' ? 'Modèl Divizyon Otomatik' : 'Modèles de Répartition Automatique'}
               </h3>
               <p className="text-[10.5px] text-neutral-400 mt-0.5">
-                {currentLabels.selectProfile}
+                {language === 'HT' 
+                  ? 'Chwazi oswa pèsonalize kijan nouvo revni yo ap separe otomatikman nan anvlòp ou yo.'
+                  : 'Choisissez ou personnalisez comment vos futurs revenus seront répartis automatiquement.'}
               </p>
             </div>
 
             <button 
               onClick={() => setIsSlidersOpen(!isSlidersOpen)}
-              className="text-amber-400 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              className="text-amber-400 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer self-start sm:self-auto shrink-0"
             >
               {isSlidersOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               {currentLabels.customizePercentages}
@@ -562,51 +721,79 @@ export const BudgetIntelligent: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-            {profiles.map(p => (
-              <button
-                key={p.id}
-                onClick={() => handleProfileChange(p.id)}
-                className={`p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
-                  activeProfileId === p.id 
-                    ? 'bg-amber-500/10 border-amber-400/40 text-amber-100 shadow-[0_4px_15px_rgba(242,202,80,0.05)]' 
-                    : 'bg-neutral-900/50 border-white/5 text-neutral-400 hover:bg-neutral-900'
-                }`}
-              >
-                <div className="text-xs font-bold leading-normal truncate">
-                  {language === 'HT' ? p.nameKreyol : p.name}
-                </div>
-                <div className="text-[10px] opacity-75 font-mono mt-1 font-semibold">
-                  Sèvi : {p.percentages.food}% Manje...
-                </div>
-              </button>
-            ))}
+            {profiles.map(p => {
+              // Calculate summary of active percentages
+              const activeCount = Object.entries(p.percentages).filter(([_, val]) => val > 0).length;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handleProfileChange(p.id)}
+                  className={`p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                    activeProfileId === p.id 
+                      ? 'bg-amber-500/10 border-amber-400/40 text-amber-100 shadow-[0_4px_15px_rgba(242,202,80,0.05)]' 
+                      : 'bg-neutral-900/50 border-white/5 text-neutral-400 hover:bg-neutral-900'
+                  }`}
+                >
+                  <div className="text-xs font-black leading-normal truncate">
+                    {language === 'HT' ? p.nameKreyol : p.name}
+                  </div>
+                  <div className="text-[9px] opacity-75 font-mono mt-1 font-semibold flex items-center gap-1 text-amber-300">
+                    📂 {activeCount} {language === 'HT' ? 'anvlòp aktif' : 'enveloppes'}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {/* Adjust Sliders Panel */}
           {isSlidersOpen && activeProfile && (
             <div className="p-4 bg-neutral-950/40 rounded-xl space-y-4 border border-white/5 animate-in fade-in duration-200">
-              <div className="flex justify-between items-center text-xs font-bold">
-                <span className="text-neutral-300 font-semibold">{currentLabels.customizePercentages}</span>
-                <span className={`font-mono px-2 py-0.5 rounded ${currentSum === 100 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}>
-                  {currentLabels.totalPercentage} {currentSum}% {currentSum !== 100 ? '⚠️' : '✅'}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-bold">
+                <span className="text-neutral-300 font-semibold">{currentLabels.customizePercentages} ({language === 'HT' ? activeProfile.nameKreyol : activeProfile.name})</span>
+                <span className={`font-mono px-2 py-0.5 rounded flex items-center gap-1.5 ${currentSum <= 100 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                  {currentLabels.totalPercentage} {currentSum}% {currentSum <= 100 ? '✅' : '⚠️'}
                 </span>
               </div>
 
-              {currentSum !== 100 && (
-                <div className="text-[10px] text-red-300 bg-red-950/20 px-3 py-2 rounded-lg border border-red-900/40 flex items-center gap-1.5 font-medium">
-                  <AlertCircle size={12} className="shrink-0" />
-                  {currentLabels.percentageError}
+              {currentSum < 100 ? (
+                <div className="text-[10px] text-amber-300 bg-amber-950/20 px-3 py-2.5 rounded-lg border border-amber-900/30 flex items-start gap-1.5 font-semibold leading-normal">
+                  <span className="text-amber-400 shrink-0 text-xs">💡</span>
+                  <div>
+                    {language === 'HT'
+                      ? `Kòb ki rete a (${100 - currentSum}% nan revni yo) ap rete otomatikman nan Pòtfe w (Solde disponible) pou w ka separe l anyèlman pita.`
+                      : `Puisque la somme est inférieure à 100%, l'excédent (${100 - currentSum}% de vos revenus) restera automatiquement dans votre Portefeuille (Solde disponible) !`}
+                  </div>
+                </div>
+              ) : currentSum > 100 ? (
+                <div className="text-[10px] text-red-300 bg-red-950/20 px-3 py-2.5 rounded-lg border border-red-900/40 flex items-start gap-1.5 font-semibold leading-normal">
+                  <AlertCircle size={12} className="shrink-0 mt-0.5 text-red-400" />
+                  <div>
+                    {language === 'HT'
+                      ? `Atansyon! Total la depase 100% (${currentSum}%). Nou rekòmande ou bese pousantaj yo pou pa depase revni w.`
+                      : `Attention ! Le total dépasse 100% (${currentSum}%). Nous vous suggérons d'ajuster les pourcentages pour ne pas dépasser vos revenus.`}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[10px] text-emerald-300 bg-emerald-950/20 px-3 py-2.5 rounded-lg border border-emerald-900/40 flex items-start gap-1.5 font-semibold leading-normal">
+                  <span className="text-emerald-400 shrink-0 text-xs">⭐</span>
+                  <div>
+                    {language === 'HT'
+                      ? "pafè! 100% revni w yo pral divize egzakteman daprè limit anvlòp yo."
+                      : "Parfait ! 100% de vos revenus seront intégralement répartis entre vos enveloppes."}
+                  </div>
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.keys(activeProfile.percentages).map(envId => {
-                  const val = activeProfile.percentages[envId];
-                  const title = envelopes.find(e => e.id === envId);
+                {envelopes.map(env => {
+                  const val = activeProfile.percentages[env.id] !== undefined ? activeProfile.percentages[env.id] : 0;
                   return (
-                    <div key={envId} className="space-y-1">
+                    <div key={env.id} className="space-y-1">
                       <div className="flex justify-between text-[11px] font-semibold text-neutral-400">
-                        <span>{title ? (language === 'HT' ? title.nameKreyol : title.name) : envId}</span>
+                        <span className="flex items-center gap-1">
+                          {renderEnvelopeIcon(env.icon)}
+                          {language === 'HT' ? env.nameKreyol : env.name}
+                        </span>
                         <span className="font-mono text-neutral-200">{val}%</span>
                       </div>
                       <input
@@ -615,7 +802,7 @@ export const BudgetIntelligent: React.FC = () => {
                         max="100"
                         step="5"
                         value={val}
-                        onChange={(e) => handleSliderChange(envId, parseInt(e.target.value))}
+                        onChange={(e) => handleSliderChange(env.id, parseInt(e.target.value))}
                         className="w-full accent-amber-500 h-1 bg-neutral-800 rounded-lg cursor-pointer"
                       />
                     </div>
@@ -626,16 +813,17 @@ export const BudgetIntelligent: React.FC = () => {
           )}
 
           {/* Slices Indicators Grid */}
-          <div className="grid grid-cols-5 gap-1 pt-1.5">
-            {Object.entries(activeProfile.percentages).map(([key, val]) => {
-              const info = envelopes.find(e => e.id === key);
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-1.5">
+            {envelopes.filter(env => (activeProfile.percentages[env.id] || 0) > 0).map(env => {
+              const val = activeProfile.percentages[env.id] || 0;
               return (
-                <div key={key} className="text-center p-2 bg-neutral-900/30 rounded-lg border border-white/5">
-                  <div className="text-[10.5px] font-bold text-neutral-200 font-mono leading-none">
+                <div key={env.id} className="text-center p-2 bg-neutral-900/30 rounded-lg border border-white/5 flex flex-col justify-center">
+                  <div className="text-[11px] font-black text-amber-400 font-mono leading-none flex items-center justify-center gap-1">
+                    {renderEnvelopeIcon(env.icon)}
                     {val}%
                   </div>
-                  <div className="text-[8.5px] text-neutral-500 font-bold truncate mt-1 leading-none uppercase">
-                    {info ? (language === 'HT' ? info.nameKreyol.split(' ')[0] : info.id) : key}
+                  <div className="text-[8.5px] text-neutral-400 font-black truncate mt-1 leading-none uppercase">
+                    {language === 'HT' ? env.nameKreyol : env.name}
                   </div>
                 </div>
               );
@@ -643,11 +831,163 @@ export const BudgetIntelligent: React.FC = () => {
           </div>
 
         </div>
-
       </div>
 
       {/* 3. ENVELOPES DETAILED LIST */}
       <section className="space-y-4">
+
+        {/* Toggle option for advanced automated partition */}
+        <div className="glass-card rounded-2xl p-4 border border-white/5 bg-neutral-900/10">
+          <button
+            type="button"
+            onClick={() => setIsAutoSplitOpen(!isAutoSplitOpen)}
+            className="w-full text-left flex items-center justify-between text-xs font-black uppercase text-amber-400 tracking-wider hover:text-amber-300 transition duration-150 cursor-pointer select-none"
+          >
+            <span className="flex items-center gap-1.5 font-sans">
+              <span>⚙️</span> {language === 'HT' ? 'Otomatizasyon (Opsyon avanse)' : 'Automatisation (Option avancée)'}
+            </span>
+            <div className="flex items-center gap-1.5 font-mono text-[10px] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded">
+              <span>{isAutoSplitOpen ? 'MINDER' : 'EKSPLORE'}</span>
+              <span>{isAutoSplitOpen ? '▲' : '▼'}</span>
+            </div>
+          </button>
+
+          {isAutoSplitOpen && (
+            <div className="mt-4 pt-4 border-t border-white/5 space-y-4 animate-in slide-in-from-top-3 duration-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                <div>
+                  <h4 className="font-extrabold text-neutral-100 text-xs flex items-center gap-1.5 font-sans">
+                    Modèl Divizyon Otomatik
+                  </h4>
+                  <p className="text-[10px] text-neutral-400 mt-0.5 font-semibold font-sans">
+                    {language === 'HT' 
+                      ? 'Chwazi oswa pèsonalize kijan nouvo revni yo ap separe otomatikman nan anvlòp ou yo.'
+                      : 'Choisissez ou personnalisez comment vos futurs revenus seront répartis automatiquement.'}
+                  </p>
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={() => setIsSlidersOpen(!isSlidersOpen)}
+                  className="text-amber-400 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer font-sans"
+                >
+                  <span>✏️</span>
+                  {currentLabels.customizePercentages}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                {profiles.map(p => {
+                  const activeCount = Object.entries(p.percentages).filter(([_, val]) => val > 0).length;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleProfileChange(p.id)}
+                      className={`p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                        activeProfileId === p.id 
+                          ? 'bg-amber-500/10 border-amber-400/40 text-amber-100' 
+                          : 'bg-neutral-950/40 border-white/5 text-neutral-400 hover:bg-neutral-900/40'
+                      }`}
+                    >
+                      <div className="text-xs font-black truncate font-sans">
+                        {language === 'HT' ? p.nameKreyol : p.name}
+                      </div>
+                      <div className="text-[9px] font-mono mt-1 font-bold flex items-center gap-1 text-amber-300">
+                        📂 {activeCount} {language === 'HT' ? 'anvlòp' : 'enveloppes'}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {isSlidersOpen && activeProfile && (
+                <div className="p-4 bg-neutral-950/60 rounded-xl space-y-4 border border-white/5 animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-bold font-sans">
+                    <span className="text-neutral-300 font-semibold">{currentLabels.customizePercentages} ({language === 'HT' ? activeProfile.nameKreyol : activeProfile.name})</span>
+                    <span className={`font-mono px-2 py-0.5 rounded flex items-center gap-1.5 ${currentSum <= 100 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                      {currentLabels.totalPercentage} {currentSum}% {currentSum <= 100 ? '✅' : '⚠️'}
+                    </span>
+                  </div>
+
+                  {currentSum < 100 ? (
+                    <div className="text-[10px] text-amber-300 bg-amber-950/20 px-3 py-2.5 rounded-lg border border-amber-900/30 flex items-start gap-1.5 font-semibold font-sans">
+                      💡
+                      <div>
+                        {language === 'HT'
+                          ? `Kòb ki rete a (${100 - currentSum}% nan revni yo) ap rete otomatikman nan Pòtfe w (Solde disponible) pou w ka separe l anyèlman pita.`
+                          : `Puisque la somme est inférieure à 100%, l'excédent (${100 - currentSum}% de vos revenus) restera automatiquement dans votre Portefeuille (Solde disponible) !`}
+                      </div>
+                    </div>
+                  ) : currentSum > 100 ? (
+                    <div className="text-[10px] text-red-300 bg-red-950/20 px-3 py-2.5 rounded-lg border border-red-900/40 flex items-start gap-1.5 font-semibold font-sans">
+                      ⚠️
+                      <div>
+                        {language === 'HT'
+                          ? `Atansyon! Total la depase 100% (${currentSum}%). Nou rekòmande ou bese pousantaj yo pou pa depase revni w.`
+                          : `Attention ! Le total dépasse 100% (${currentSum}%). Nous vous suggérons d'ajuster les pourcentages pour ne pas dépasser vos revenus.`}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-emerald-300 bg-emerald-950/20 px-3 py-2.5 rounded-lg border border-emerald-900/40 flex items-start gap-1.5 font-semibold font-sans">
+                      ⭐
+                      <div>
+                        {language === 'HT'
+                          ? "pafè! 100% revni w yo pral divize egzakteman daprè limit anvlòp yo."
+                          : "Parfait ! 100% de vos revenus seront intégralement répartis entre vos enveloppes."}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {envelopes.map(env => {
+                      const val = activeProfile.percentages[env.id] !== undefined ? activeProfile.percentages[env.id] : 0;
+                      return (
+                        <div key={env.id} className="space-y-1">
+                          <div className="flex justify-between text-[11px] font-semibold text-neutral-400">
+                            <span className="flex items-center gap-1 font-sans">
+                              {renderEnvelopeIcon(env.icon)}
+                              {language === 'HT' ? env.nameKreyol : env.name}
+                            </span>
+                            <span className="font-mono text-neutral-200">{val}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={val}
+                            onChange={(e) => handleSliderChange(env.id, parseInt(e.target.value))}
+                            className="w-full accent-amber-500 h-1 bg-neutral-800 rounded-lg cursor-pointer"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Slices Indicators Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-1.5">
+                {envelopes.filter(env => (activeProfile.percentages[env.id] || 0) > 0).map(env => {
+                  const val = activeProfile.percentages[env.id] || 0;
+                  return (
+                    <div key={env.id} className="text-center p-2 bg-neutral-900/40 rounded-lg border border-white/5 flex flex-col justify-center">
+                      <div className="text-[11px] font-black text-amber-400 font-mono leading-none flex items-center justify-center gap-1">
+                        {renderEnvelopeIcon(env.icon)}
+                        {val}%
+                      </div>
+                      <div className="text-[8.5px] text-neutral-400 font-black truncate mt-1 leading-none uppercase font-sans">
+                        {language === 'HT' ? env.nameKreyol : env.name}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="font-bold text-lg md:text-xl text-neutral-100 flex items-center gap-2">
@@ -775,9 +1115,7 @@ export const BudgetIntelligent: React.FC = () => {
 
                         <button
                           onClick={() => {
-                            if (window.confirm(language === 'HT' ? `Èske w vle siprime anvlòp "${env.nameKreyol}" sa a? Lajan net kòb ki rete a pral tounen nan Fon Disponib.` : `Supprimer l'enveloppe "${env.name}" ? Le solde net sera reversé aux Fonds disponibles.`)) {
-                              deleteEnvelope(env.id);
-                            }
+                            setEnvelopeToDelete(env);
                           }}
                           className="p-1 text-neutral-500 hover:text-red-400 rounded hover:bg-white/5 transition cursor-pointer"
                           title={language === 'HT' ? 'Siprime Anvlòp sa' : 'Supprimer cette enveloppe'}
@@ -880,7 +1218,21 @@ export const BudgetIntelligent: React.FC = () => {
 
                       <div className="flex justify-between items-center text-[10.5px]">
                         <span className="text-neutral-500 font-semibold">{currentLabels.spent}</span>
-                        <span className="font-mono text-neutral-400 font-bold">{formatMoney(env.spentAmount, 'HTG')}</span>
+                        <div className="flex items-center gap-1 font-mono text-neutral-400 font-bold">
+                          <span>{formatMoney(env.spentAmount, 'HTG')}</span>
+                          <div className="flex items-center gap-0.5 bg-neutral-950 p-0.5 rounded border border-white/5">
+                            <button
+                              onClick={() => {
+                                setNewSpentAmount(env.spentAmount.toString());
+                                setShowEditSpentModal(env.id);
+                              }}
+                              className="p-1 hover:text-amber-400 text-neutral-500 hover:bg-neutral-900 rounded transition cursor-pointer"
+                              title={language === 'HT' ? 'Chanje depans yo' : 'Modifier les dépenses'}
+                            >
+                              <Edit2 size={9} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="h-1.5 w-full bg-neutral-950 rounded-full overflow-hidden relative border border-white/5">
@@ -941,20 +1293,66 @@ export const BudgetIntelligent: React.FC = () => {
                 <div key={tx.id} className="p-3 bg-neutral-900/50 rounded-xl border border-white/5 hover:border-white/10 space-y-2">
                   <div className="flex justify-between items-start text-xs">
                     <div>
-                      <span className="font-extrabold text-neutral-200 block">{tx.source}</span>
+                      <span className="font-extrabold text-neutral-200 block">
+                        {tx.note || (language === 'HT' ? (
+                          tx.source === 'SALARY' ? 'Salè jeneral' :
+                          tx.source === 'DAILY_LABOR' ? 'Freelance / Biznis Kote' :
+                          tx.source === 'TRANSFER' ? 'Transfè dyaspora / Kado' :
+                          tx.source === 'COMMERCE' ? 'Ti Komès / Biznis' : 'Lòt sous'
+                        ) : (
+                          tx.source === 'SALARY' ? 'Salaire' :
+                          tx.source === 'DAILY_LABOR' ? 'Freelance' :
+                          tx.source === 'TRANSFER' ? 'Transfert d\'argent' :
+                          tx.source === 'COMMERCE' ? 'Commerce / Affaires' : 'Autre source'
+                        ))}
+                      </span>
                       <span className="text-[10px] font-bold text-neutral-500 flex items-center gap-1">
                         <Calendar size={10} />
                         {tx.date}
                       </span>
                     </div>
 
-                    <div className="text-right">
-                      <span className="font-mono text-xs font-black text-amber-400">
-                        + {formatMoney(tx.amount, tx.currency)}
-                      </span>
-                      <span className="text-[9px] font-extrabold text-neutral-400 block px-1.5 py-0.5 rounded bg-white/5 mt-0.5 uppercase tracking-wider">
-                        {pIdLabel(tx.profileId)}
-                      </span>
+                    <div className="flex items-start gap-2">
+                      <div className="text-right">
+                        <span className="font-mono text-xs font-black text-amber-400">
+                          + {formatMoney(tx.amount, tx.currency)}
+                        </span>
+                        <span className="text-[9px] font-extrabold text-neutral-400 block px-1.5 py-0.5 rounded bg-white/5 mt-0.5 uppercase tracking-wider">
+                          {pIdLabel(tx.profileId)}
+                        </span>
+                      </div>
+                      
+                      {deleteConfirmTxId === tx.id ? (
+                        <div className="flex items-center gap-1 self-center bg-red-950/40 border border-red-500/20 p-1 rounded-lg animate-in fade-in duration-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteIncomeTransaction(tx.id);
+                              setDeleteConfirmTxId(null);
+                            }}
+                            className="text-[9px] bg-red-500 hover:bg-red-600 text-white font-black px-1.5 py-0.5 rounded transition cursor-pointer font-sans"
+                            title={language === 'HT' ? 'Konfime sipresyon an' : 'Confirmer la suppression'}
+                          >
+                            {language === 'HT' ? 'Wi' : 'Oui'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmTxId(null)}
+                            className="text-[9px] bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-1.5 py-0.5 rounded transition cursor-pointer font-sans"
+                          >
+                            X
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmTxId(tx.id)}
+                          className="text-neutral-500 hover:text-red-400 p-1.5 rounded hover:bg-neutral-800 transition duration-150 cursor-pointer text-center flex items-center justify-center self-center shrink-0"
+                          title={language === 'HT' ? 'Efase' : 'Supprimer'}
+                        >
+                          <Trash2 size={13} className="shrink-0" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1060,6 +1458,25 @@ export const BudgetIntelligent: React.FC = () => {
               </select>
             </div>
 
+            <div className="space-y-1">
+              <label className="text-[10.5px] font-bold text-neutral-400">
+                {language === 'HT' ? 'Ekri sous pèsonalize ou (Si ou vle)' : 'Sélectionnez ou écrivez votre propre source de revenu'}
+              </label>
+              <input
+                type="text"
+                placeholder={
+                  incomeSource === 'SALARY' ? (language === 'HT' ? 'eg: Travay Lekòl, Ministè...' : 'ex: Salaire de Juin, Consultant...') :
+                  incomeSource === 'COMMERCE' ? (language === 'HT' ? 'eg: Boutik, Vann klere...' : 'ex: Boutique, Vente habit...') :
+                  incomeSource === 'TRANSFER' ? (language === 'HT' ? 'eg: MonCash, Kado Monik...' : 'ex: Envoi MonCash, Cadeau...') :
+                  incomeSource === 'DAILY_LABOR' ? (language === 'HT' ? 'eg: Penti kay, Chofè kous...' : 'ex: Design Logo, Peinture...') :
+                  (language === 'HT' ? 'eg: Enterè bank, Lwaye...' : 'ex: Intérêts, Loyer, Bonus...')
+                }
+                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-sans"
+                value={customIncomeSource}
+                onChange={(e) => setCustomIncomeSource(e.target.value)}
+              />
+            </div>
+
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-2 space-y-1">
                 <label className="text-[10.5px] font-bold text-neutral-400">{currentLabels.amount}</label>
@@ -1083,6 +1500,7 @@ export const BudgetIntelligent: React.FC = () => {
                   <option value="HTG">HTG</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
+                  <option value="USDT">USDT</option>
                 </select>
               </div>
             </div>
@@ -1309,6 +1727,60 @@ export const BudgetIntelligent: React.FC = () => {
                 onClick={() => {
                   setShowEditDepositModal(null);
                   setNewDepositAmount('');
+                }}
+                className="flex-1 py-3 bg-neutral-800 text-white font-bold rounded-xl text-xs uppercase cursor-pointer"
+              >
+                Anile
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-xs uppercase cursor-pointer"
+              >
+                {language === 'HT' ? 'Chanje kounye a' : 'Confirmer'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* --- EDIT SPENT INSTANT MODAL --- */}
+      {showEditSpentModal && (
+        <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
+          <form 
+            onSubmit={handleEditSpentSubmit}
+            className="bg-neutral-900 border border-white/10 p-5 rounded-2xl max-w-sm w-full relative space-y-4"
+          >
+            <h3 className="text-base font-black text-amber-400 flex items-center gap-1.5">
+              ✏️ {language === 'HT' ? 'Chanje depans yo' : 'Modifier les dépenses'} : {pIdLabel(showEditSpentModal)}
+            </h3>
+
+            <div className="space-y-1">
+              <label className="text-[10.5px] font-bold text-neutral-400">
+                {language === 'HT' ? 'Kantite depans ou vle mete nèt (HTG)' : 'Nouveau montant total dépensé (HTG)'}
+              </label>
+              <input
+                type="number"
+                required
+                min="0"
+                placeholder="2000"
+                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
+                value={newSpentAmount}
+                onChange={(e) => setNewSpentAmount(e.target.value)}
+              />
+            </div>
+
+            <div className="text-[10px] text-neutral-400 leading-normal bg-neutral-950/40 p-2.5 rounded-lg border border-white/5">
+              {language === 'HT' 
+                ? 'Sa pral chanje montan total depans yo pou anvlòp sa a nèt.' 
+                : 'Ceci modifiera directement le montant cumulé de vos dépenses pour cette enveloppe.'}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditSpentModal(null);
+                  setNewSpentAmount('');
                 }}
                 className="flex-1 py-3 bg-neutral-800 text-white font-bold rounded-xl text-xs uppercase cursor-pointer"
               >
@@ -1654,6 +2126,79 @@ export const BudgetIntelligent: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* --- CONFIRM ENVELOPE DELETION MODAL --- */}
+      {envelopeToDelete && (
+        <div className="fixed inset-0 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center z-[250] p-4 animate-in fade-in duration-200">
+          <div className="bg-neutral-900 border border-white/10 p-6 rounded-2xl max-w-sm w-full space-y-5 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+                <Trash2 size={20} />
+              </div>
+              <h3 className="text-base font-black uppercase tracking-wider">
+                {language === 'HT' ? 'Siprime Anvlòp?' : 'Suppression'}
+              </h3>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-neutral-300 font-semibold leading-relaxed">
+                {language === 'HT' 
+                  ? `Èske ou vle siprime anvlòp "${envelopeToDelete.nameKreyol || envelopeToDelete.name}" la tout bon vre?` 
+                  : `Voulez-vous vraiment supprimer l'enveloppe "${envelopeToDelete.name}" ?`}
+              </p>
+              
+              <div className="p-3 rounded-xl bg-neutral-950/60 border border-white/5 space-y-1 text-xs">
+                <div className="flex justify-between items-center text-neutral-400 font-medium">
+                  <span>{language === 'HT' ? 'Depo ki ladan l:' : 'Épargne cumulée:'}</span>
+                  <span className="font-mono text-neutral-200 font-bold">
+                    {formatMoney(envelopeToDelete.allocatedAmount, 'HTG')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-neutral-400 font-medium">
+                  <span>{language === 'HT' ? 'Kòb depanse:' : 'Dépenses effectuées:'}</span>
+                  <span className="font-mono text-neutral-200 font-bold">
+                    {formatMoney(envelopeToDelete.spentAmount, 'HTG')}
+                  </span>
+                </div>
+                <div className="border-t border-white/5 pt-1 mt-1 flex justify-between items-center font-bold text-amber-400 text-xs">
+                  <span>{language === 'HT' ? 'Kantite kòb k ap retounen:' : 'Solde reversé:'}</span>
+                  <span className="font-mono font-black">
+                    {formatMoney(Math.max(0, envelopeToDelete.allocatedAmount - envelopeToDelete.spentAmount), 'HTG')}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-neutral-400 leading-normal bg-amber-500/5 border border-amber-500/10 p-2 rounded-lg font-semibold">
+                ⚠️ {language === 'HT' 
+                  ? 'Kòb ki rete a pral otomatikman tounen nan Solde disponible (Pòtfe w) pou w ka mete l lòt kote.' 
+                  : 'Le solde restant de cette enveloppe sera reversé sur votre Solde disponible (Portefeuille).'}
+              </p>
+            </div>
+
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setEnvelopeToDelete(null)}
+                className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-800/80 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all select-none cursor-pointer"
+              >
+                {language === 'HT' ? 'Anile' : 'Annuler'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteEnvelope(envelopeToDelete.id);
+                  setEnvelopeToDelete(null);
+                }}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all select-none cursor-pointer shadow-lg shadow-rose-950/30"
+              >
+                {language === 'HT' ? 'Wi, Siprime' : 'Oui, Supprimer'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
