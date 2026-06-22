@@ -45,6 +45,14 @@ export const VisionPage: React.FC = () => {
   const [currency, setCurrency] = useState<CurrencyCode>('HTG');
   const [targetDate, setTargetDate] = useState('');
 
+  // Editing individual item state
+  const [editingItem, setEditingItem] = useState<VisionItem | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editCostStr, setEditCostStr] = useState('');
+  const [editCurrency, setEditCurrency] = useState<CurrencyCode>('HTG');
+  const [editTargetDate, setEditTargetDate] = useState('');
+
   // Is Add Form open
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -251,16 +259,16 @@ export const VisionPage: React.FC = () => {
                     className="w-full bg-transparent text-neutral-200 px-4 py-3 text-xs font-bold font-mono focus:outline-none"
                     min="1"
                   />
-                  {costStr && (
-                    <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-                      className="bg-neutral-900 border-l border-white/5 text-neutral-300 text-xs font-bold font-mono px-3 py-1 outline-none"
-                    >
-                      <option value="HTG">HTG</option>
-                      <option value="USD">USD</option>
-                    </select>
-                  )}
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+                    className="bg-neutral-900 border-l border-white/5 text-neutral-300 text-xs font-bold font-mono px-3 py-1 outline-none cursor-pointer"
+                  >
+                    <option value="HTG">HTG</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="USDT">USDT</option>
+                  </select>
                 </div>
               </div>
 
@@ -377,13 +385,29 @@ export const VisionPage: React.FC = () => {
                         {item.title}
                       </h3>
                       
-                      <button 
-                        onClick={() => deleteVisionItem(item.id)}
-                        className="text-neutral-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/5 transition cursor-pointer self-start shrink-0 duration-200"
-                        title={language === 'HT' ? 'Efase' : 'Effacer'}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button 
+                          onClick={() => {
+                            setEditingItem(item);
+                            setEditTitle(item.title);
+                            setEditContent(item.content);
+                            setEditCostStr(item.cost ? item.cost.toString() : '');
+                            setEditCurrency(item.currency || 'HTG');
+                            setEditTargetDate(item.targetDate || '');
+                          }}
+                          className="text-neutral-500 hover:text-amber-500 p-1 rounded-lg hover:bg-neutral-500/5 transition cursor-pointer self-start shrink-0 duration-200"
+                          title={language === 'HT' ? 'Chanje' : 'Modifier'}
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          onClick={() => deleteVisionItem(item.id)}
+                          className="text-neutral-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/5 transition cursor-pointer self-start shrink-0 duration-200"
+                          title={language === 'HT' ? 'Efase' : 'Effacer'}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Content text */}
@@ -469,6 +493,111 @@ export const VisionPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* 6. EDIT JOURNAL ITEM MODAL */}
+      {editingItem && (
+        <div className="fixed inset-0 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!editTitle.trim() || !editContent.trim()) {
+                showToast(language === 'HT' ? "Silvouplè ranpli tit ak deskripsyon!" : "Veuillez remplir le titre et la description !", "error");
+                return;
+              }
+              const costFloat = editCostStr ? parseFloat(editCostStr) : undefined;
+              updateVisionItem(editingItem.id, {
+                title: editTitle.trim(),
+                content: editContent.trim(),
+                cost: costFloat,
+                currency: costFloat ? editCurrency : undefined,
+                targetDate: editTargetDate || undefined
+              });
+              setEditingItem(null);
+              showToast(language === 'HT' ? "Kaye w chanje ak siksè!" : "Votre carnet a été mis à jour avec succès !", "success");
+            }}
+            className="bg-neutral-900 border border-white/10 p-5 rounded-2xl max-w-sm w-full relative space-y-4 shadow-2xl"
+          >
+            <h3 className="text-base font-black text-amber-550 flex items-center gap-1.5 font-sans">
+              ✏️ {language === 'HT' ? 'Chanje Kaye w' : 'Modifier la Note'}
+            </h3>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase">{visionLabels.addTitle}</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-sans"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase">{language === 'HT' ? 'Detay' : 'Détails'}</label>
+                <textarea
+                  required
+                  rows={3}
+                  className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-sans resize-none"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase">{language === 'HT' ? 'Pri estime' : 'Coût estime'}</label>
+                  <div className="flex bg-neutral-950 border border-white/10 rounded-xl overflow-hidden focus-within:border-amber-500">
+                    <input
+                      type="number"
+                      placeholder="E.g. 500"
+                      className="w-full bg-transparent text-white px-3 py-2 text-xs font-bold font-mono focus:outline-none"
+                      value={editCostStr}
+                      onChange={(e) => setEditCostStr(e.target.value)}
+                    />
+                    <select
+                      value={editCurrency}
+                      onChange={(e) => setEditCurrency(e.target.value as CurrencyCode)}
+                      className="bg-neutral-900 border-l border-white/5 text-neutral-300 text-[10px] font-bold font-mono px-2 py-1 outline-none cursor-pointer"
+                    >
+                      <option value="HTG">HTG</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="USDT">USDT</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase">{language === 'HT' ? 'Dat limit' : 'Échéance'}</label>
+                  <input
+                    type="date"
+                    className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
+                    value={editTargetDate}
+                    onChange={(e) => setEditTargetDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-750 text-white font-bold rounded-xl text-xs uppercase cursor-pointer"
+              >
+                {language === 'HT' ? 'Anile' : 'Annuler'}
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-xs uppercase cursor-pointer"
+              >
+                {language === 'HT' ? 'Anrejistre' : 'Enregistrer'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
     </div>
   );

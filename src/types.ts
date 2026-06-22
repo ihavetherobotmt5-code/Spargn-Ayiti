@@ -96,4 +96,15 @@ export interface VisionItem {
   createdDate: string;
 }
 
+// --- v1.5: Les Abonnements (Subscriptions) ---
+export interface Subscription {
+  id: string;
+  name: string;
+  amount: number;
+  currency: CurrencyCode;
+  billingCycle: 'monthly' | 'yearly' | 'weekly' | 'custom';
+  nextBillingDate: string; // YYYY-MM-DD
+  active: boolean;
+}
+
 

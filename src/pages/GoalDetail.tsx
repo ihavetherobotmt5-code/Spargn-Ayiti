@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { TRANSLATIONS, FREQ_LABELS } from '../lib/translations';
-import { calculateTotalSaved, calculateProgress, formatMoney, daysRemaining, formatDate, calculateRecommendedAmount } from '../lib/currency';
+import { calculateTotalSaved, calculateProgress, formatMoney, daysRemaining, formatDate, calculateRecommendedAmount, convert } from '../lib/currency';
 import { ArrowLeft, Trash2, CheckCircle, Plus, Sparkles, Coins, Lightbulb, TrendingUp, Lock, Search, Download, X } from 'lucide-react';
 import { ProjectionChart } from '../components/ProjectionChart';
 import { AddContributionDialog } from '../components/AddContributionDialog';
@@ -246,6 +246,9 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
   const [aiIsLoading, setAiIsLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  // Selector state for multi-currency viewing
+  const [displayCurrency, setDisplayCurrency] = useState<'ORIGINAL' | 'HTG' | 'USD'>('ORIGINAL');
+
   const goal = goals.find(g => g.id === goalId) || completedGoals.find(g => g.id === goalId);
 
   if (!goal) {
@@ -267,6 +270,12 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
   const progress = calculateProgress(saved, goal.targetAmount);
   const remainingValue = Math.max(0, goal.targetAmount - saved);
   const daysLeft = daysRemaining(goal.targetDate);
+
+  // Derived converted metrics for user display toggle
+  const viewCurrency = displayCurrency === 'ORIGINAL' ? goal.currency : displayCurrency;
+  const viewSaved = convert(saved, goal.currency, viewCurrency, rates);
+  const viewTarget = convert(goal.targetAmount, goal.currency, viewCurrency, rates);
+  const viewRemaining = convert(remainingValue, goal.currency, viewCurrency, rates);
 
   // Helper context for AI Coach
   const getContextForCoach = () => {
@@ -353,6 +362,7 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
 
   // Timeline Estimator calculations
   const avgContribution = list.length > 0 ? saved / list.length : 0;
+  const viewAvgContribution = convert(avgContribution, goal.currency, viewCurrency, rates);
   let estText = '';
   let estDateText = '';
 
@@ -375,10 +385,10 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
     estDate.setDate(estDate.getDate() + estDays);
 
     if (language === 'HT') {
-      estText = `Avèk mwayèn ${formatMoney(avgContribution, goal.currency)} pa depo, w ap bezwen apeprè ${requiredPeriods} depo ankò.`;
+      estText = `Avèk mwayèn ${formatMoney(viewAvgContribution, viewCurrency)} pa depo, w ap bezwen apeprè ${requiredPeriods} depo ankò.`;
       estDateText = `Estimatasyon Konplete : d'ici ~${estMonths} mwa (${formatDate(estDate.toISOString().split('T')[0], 'fr-FR')})`;
     } else {
-      estText = `Avec une moyenne de ${formatMoney(avgContribution, goal.currency)} par dépôt, il vous reste environ ${requiredPeriods} dépôts.`;
+      estText = `Avec une moyenne de ${formatMoney(viewAvgContribution, viewCurrency)} par dépôt, il vous reste environ ${requiredPeriods} dépôts.`;
       estDateText = `Date d'achèvement estimée : d'ici ~${estMonths} mois (${formatDate(estDate.toISOString().split('T')[0], 'fr-FR')})`;
     }
   } else {
@@ -392,6 +402,7 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
     goal.targetDate,
     goal.frequency
   );
+  const viewRecommendedAmount = convert(recommendedAmount, goal.currency, viewCurrency, rates);
 
   const freqOptionLabel = FREQ_LABELS[goal.frequency]?.[language] || FREQ_LABELS[goal.frequency]?.EN || 'période';
 
@@ -502,25 +513,49 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
     <div className="space-y-8 animate-in fade-in slide-in-from-right-5 duration-300 pb-12">
       
       {/* Header secondary nav matching Screen 2 */}
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={onBack}
-          className="active:scale-95 transition-transform text-amber-400 h-10 w-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/5 cursor-pointer"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <h1 className="font-headline-md text-xl md:text-2xl font-black text-amber-400 tracking-tight leading-none">
-          {goal.name}
-        </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onBack}
+            className="active:scale-95 transition-transform text-amber-400 h-10 w-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/5 cursor-pointer"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <h1 className="font-headline-md text-xl md:text-2xl font-black text-amber-500 tracking-tight leading-none">
+            {goal.name}
+          </h1>
+        </div>
+
+        {/* Currency Display Selector */}
+        <div className="flex items-center gap-1.5 bg-neutral-900 border border-white/5 p-1 rounded-xl self-start sm:self-auto">
+          <button
+            onClick={() => setDisplayCurrency('ORIGINAL')}
+            className={`cursor-pointer px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${displayCurrency === 'ORIGINAL' ? 'bg-amber-500 text-neutral-950 shadow-md' : 'text-neutral-400 hover:text-white'}`}
+          >
+            {goal.currency}
+          </button>
+          <button
+            onClick={() => setDisplayCurrency('HTG')}
+            className={`cursor-pointer px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${displayCurrency === 'HTG' ? 'bg-amber-500 text-neutral-950 shadow-md' : 'text-neutral-400 hover:text-white'}`}
+          >
+            HTG
+          </button>
+          <button
+            onClick={() => setDisplayCurrency('USD')}
+            className={`cursor-pointer px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${displayCurrency === 'USD' ? 'bg-amber-500 text-neutral-950 shadow-md' : 'text-neutral-400 hover:text-white'}`}
+          >
+            USD
+          </button>
+        </div>
       </div>
 
       {/* Goal Success Banner / Celebration / Completed goals banner */}
       {progress >= 100 ? (
         <GoalSuccessBanner 
           goalName={goal.name}
-          saved={saved}
-          target={goal.targetAmount}
-          currency={goal.currency}
+          saved={viewSaved}
+          target={viewTarget}
+          currency={viewCurrency}
           language={language as 'FR' | 'HT' | 'EN'}
           status={goal.status}
           onMarkComplete={() => {
@@ -642,11 +677,11 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
             <div className="flex justify-between items-end">
               <div>
                 <p className="font-label-sm text-[11px] text-neutral-500 uppercase tracking-wider font-bold">Epay Aktyèl / Épargne Actuelle</p>
-                <h2 className="font-display-lg text-2xl md:text-3xl font-black text-[#f2ca50] mt-1">{formatMoney(saved, goal.currency)}</h2>
+                <h2 className="font-display-lg text-2xl md:text-3xl font-black text-[#f2ca50] mt-1">{formatMoney(viewSaved, viewCurrency)}</h2>
               </div>
               <div className="text-right">
                 <p className="font-label-sm text-[11px] text-neutral-500 uppercase tracking-wider font-bold font-mono">Objektif Final / Cible</p>
-                <p className="font-headline-md text-base md:text-lg font-bold text-neutral-100 mt-1">{formatMoney(goal.targetAmount, goal.currency)}</p>
+                <p className="font-headline-md text-base md:text-lg font-bold text-neutral-100 mt-1">{formatMoney(viewTarget, viewCurrency)}</p>
               </div>
             </div>
 
@@ -664,7 +699,7 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
             <div className="flex justify-between items-center text-[10px] text-neutral-400 pt-0.5">
               <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
                 <TrendingUp size={12} />
-                {progress >= 100 ? "Objectif Atteint ! 🏆" : `Reste ${formatMoney(remainingValue, goal.currency)}`}
+                {progress >= 100 ? "Objectif Atteint ! 🏆" : `Reste ${formatMoney(viewRemaining, viewCurrency)}`}
               </span>
               <span className="font-bold uppercase tracking-wider bg-white/5 border border-white/5 px-2 py-0.5 rounded text-neutral-400">
                 {daysLeft > 0 ? `${daysLeft} jours restants` : 'Date limite dépassée'}
@@ -702,7 +737,7 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
                       Chak {freqOptionLabel} / {goal.frequency === 'DAILY' ? 'Par jour' : goal.frequency === 'WEEKLY' ? 'Par semaine' : goal.frequency === 'MONTHLY' ? 'Par mois' : goal.frequency === 'QUARTERLY' ? 'Par trimestre' : 'Par an'}
                     </span>
                     <span className="font-headline-md text-lg font-black text-amber-400">
-                      {formatMoney(recommendedAmount, goal.currency)}
+                      {formatMoney(viewRecommendedAmount, viewCurrency)}
                     </span>
                   </div>
                 </div>
@@ -942,7 +977,7 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({ goalId, onBack }) => {
 
                     <div className="text-right flex items-center gap-2 flex-shrink-0">
                       <span className="text-emerald-400 font-black text-xs whitespace-nowrap">
-                        +{formatMoney(contrib.amount, contrib.currency)}
+                        +{formatMoney(convert(contrib.amount, contrib.currency, viewCurrency, rates), viewCurrency)}
                       </span>
                       {goal.status !== 'completed' && (
                         <button

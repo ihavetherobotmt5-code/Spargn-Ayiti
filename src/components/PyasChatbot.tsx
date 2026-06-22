@@ -16,7 +16,8 @@ export const PyasChatbot: React.FC = () => {
     contributions, 
     language, 
     userName, 
-    showToast 
+    showToast,
+    subscriptions
   } = useAppContext();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -512,6 +513,90 @@ ${advice}`;
       }
     }
 
+    // 7. Subscriptions / Abonnements check
+    if (
+      raw.includes('abonnement') || 
+      raw.includes('abònman') || 
+      raw.includes('abonman') || 
+      raw.includes('netflix') || 
+      raw.includes('claude') || 
+      raw.includes('subscription') || 
+      raw.includes('paye ankò') || 
+      raw.includes('récurrent')
+    ) {
+      const activeSubs = subscriptions.filter(s => s.active);
+      if (activeSubs.length === 0) {
+        if (language === 'HT') {
+          return `### 📅 Abònman ou yo (Poko Genyen)
+          
+Ou pa gen okenn abònman aktif konfigire jounen jodi a.
+*Ou ka jere tou senpleman abònman ak depans renouvlab ou yo depi sou feyè Dashboard ou a pou Pyas ka asire w nan kalkil yo !* 💸`;
+        } else {
+          return `### 📅 Vos Abonnements Récurrents
+          
+Vous n'avez aucun abonnement actif ou enregistré pour le moment.
+*Vous pouvez facilement ajouter vos abonnements (Netflix, Claude AI, iCloud, etc.) sur le Dashboard pour que je puisse vous alerter avant chaque prélèvement !* 💸`;
+        }
+      }
+
+      let subList = '';
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      
+      activeSubs.forEach(s => {
+        const nextDate = new Date(s.nextBillingDate + 'T00:00:00');
+        const timeDiff = nextDate.getTime() - today.getTime();
+        const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        
+        let dueAlert = '';
+        if (daysRemaining < 0) {
+          dueAlert = language === 'HT' ? `⚠️ Peye sa gen ${Math.abs(daysRemaining)} jou` : `⚠️ Échu depuis ${Math.abs(daysRemaining)} jours`;
+        } else if (daysRemaining === 0) {
+          dueAlert = language === 'HT' ? `🚨 Prelevman AP FÈT JODI A !` : `🚨 Prélèvement AUJOURD'HUI !`;
+        } else if (daysRemaining === 1) {
+          dueAlert = language === 'HT' ? `🔔 Touche DEMEN` : `🔔 Demain !`;
+        } else {
+          dueAlert = language === 'HT' ? `🔔 Touche nan ${daysRemaining} jou` : `🔔 Dans ${daysRemaining} jours (${s.nextBillingDate})`;
+        }
+
+        subList += `*   **${s.name}** : \`${s.amount} ${s.currency}\` (${s.billingCycle === 'monthly' ? (language === 'HT' ? 'Chak Mwa' : 'Tous les mois') : s.billingCycle}) — **${dueAlert}**\n`;
+      });
+
+      if (language === 'HT') {
+        let resultHT = `### 📅 Swivi Abònman ak Avètisman\n\nMen lis abònman ou yo k ap kouri :\n\n${subList}\n`;
+        const netflixSub = activeSubs.find(s => s.name.toLowerCase().includes('netflix'));
+        const claudeSub = activeSubs.find(s => s.name.toLowerCase().includes('claude'));
+        
+        if (netflixSub) {
+          const nextDate = new Date(netflixSub.nextBillingDate + 'T00:00:00');
+          const daysRemaining = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysRemaining > 0) {
+            resultHT += `\n📺 **Rapèl sa enpòtan :** *Nan ${daysRemaining} jou, y ap prélève abònman **Netflix** ou an (${netflixSub.amount} ${netflixSub.currency}) !*\n`;
+          }
+        }
+        if (claudeSub) {
+          resultHT += `\n🧠 **Sajès Pyas :** *Pa bliye prevwa ak sere kòb sifizan (**${claudeSub.amount} ${claudeSub.currency}**) pou abònman **${claudeSub.name}** ou an pito w sanzatann !*\n`;
+        }
+        return resultHT;
+      } else {
+        let resultFR = `### 📅 Suivi et Alertes d'Abonnements\n\nVoici vos prélèvements récurrents actifs sous surveillance :\n\n${subList}\n`;
+        const netflixSub = activeSubs.find(s => s.name.toLowerCase().includes('netflix'));
+        const claudeSub = activeSubs.find(s => s.name.toLowerCase().includes('claude'));
+        
+        if (netflixSub) {
+          const nextDate = new Date(netflixSub.nextBillingDate + 'T00:00:00');
+          const daysRemaining = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysRemaining > 0) {
+            resultFR += `\n📺 **Rappel important :** *Dans ${daysRemaining} jours, votre abonnement **Netflix** de ${netflixSub.amount} ${netflixSub.currency} sera prélevé.*\n`;
+          }
+        }
+        if (claudeSub) {
+          resultFR += `\n🧠 **Note d'anticipation :** *N'oubliez pas de prévoir **${claudeSub.amount} ${claudeSub.currency}** pour votre abonnement **${claudeSub.name}** afin de l'aborder l'esprit serein.*\n`;
+        }
+        return resultFR;
+      }
+    }
+
     return null;
   };
 
@@ -538,18 +623,45 @@ ${advice}`;
       };
     });
 
+    // Subscriptions helper context for LLM comprehension
+    const activeSubsText = subscriptions
+      .filter(s => s.active)
+      .map(s => {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const nextDate = new Date(s.nextBillingDate + 'T00:00:00');
+        const daysRemaining = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return `${s.name} (${s.amount} ${s.currency}, prélèvement dans ${daysRemaining} jours / date: ${s.nextBillingDate})`;
+      })
+      .join(', ');
+
+    const virtualGoalList = activeSubsText ? [
+      {
+        name: `[ALERTE SYSTEME - ABONNEMENTS ACTIFS DE L'UTILISATEUR]: ${activeSubsText}`,
+        targetAmount: 0,
+        currency: 'USD' as any,
+        icon: 'bell',
+        saved: 0,
+        targetDate: '',
+        frequency: 'DAILY' as any
+      }
+    ] : [];
+
     return {
       language,
       userName,
-      goals: goals.map(g => ({
-        name: g.name,
-        targetAmount: g.targetAmount,
-        currency: g.currency,
-        icon: g.icon,
-        saved: contributionsSummary[g.id]?.total || 0,
-        targetDate: g.targetDate,
-        frequency: g.frequency
-      })),
+      goals: [
+        ...goals.map(g => ({
+          name: g.name,
+          targetAmount: g.targetAmount,
+          currency: g.currency,
+          icon: g.icon,
+          saved: contributionsSummary[g.id]?.total || 0,
+          targetDate: g.targetDate,
+          frequency: g.frequency
+        })),
+        ...virtualGoalList
+      ],
       contributionsSummary,
       solWeeklyHand,
       solSelectedTurn,

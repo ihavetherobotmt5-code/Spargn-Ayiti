@@ -30,6 +30,7 @@ import { IncomeSource, BudgetEnvelope } from '../types';
 
 export const BudgetIntelligent: React.FC = () => {
   const {
+    goals,
     envelopes,
     profiles,
     incomeTransactions,
@@ -41,6 +42,7 @@ export const BudgetIntelligent: React.FC = () => {
     deleteEnvelope,
     updateEnvelopeDeposit,
     updateEnvelopeSpent,
+    updateEnvelope,
     addIncomeTransaction,
     deleteIncomeTransaction,
     addEnvelopeExpense,
@@ -62,9 +64,11 @@ export const BudgetIntelligent: React.FC = () => {
   // Custom Envelopes Local State
   const [showEditDepositModal, setShowEditDepositModal] = useState<string | null>(null);
   const [newDepositAmount, setNewDepositAmount] = useState('');
+  const [editDepositCurrency, setEditDepositCurrency] = useState<'HTG' | 'USD' | 'EUR' | 'USDT'>('HTG');
 
   const [showEditSpentModal, setShowEditSpentModal] = useState<string | null>(null);
   const [newSpentAmount, setNewSpentAmount] = useState('');
+  const [editSpentCurrency, setEditSpentCurrency] = useState<'HTG' | 'USD' | 'EUR' | 'USDT'>('HTG');
 
   const [showAddFundsModal, setShowAddFundsModal] = useState<string | null>(null);
   const [addFundsAmount, setAddFundsAmount] = useState('');
@@ -75,7 +79,7 @@ export const BudgetIntelligent: React.FC = () => {
   const [showCreateEnvelopeModal, setShowCreateEnvelopeModal] = useState(false);
   const [newEnvelopeName, setNewEnvelopeName] = useState('');
   const [newEnvelopeNameKreyol, setNewEnvelopeNameKreyol] = useState('');
-  const [newEnvelopeIcon, setNewEnvelopeIcon] = useState('utensils');
+  const [newEnvelopeIcon, setNewEnvelopeIcon] = useState('');
   const [newEnvelopeInitialAlloc, setNewEnvelopeInitialAlloc] = useState('');
   const [newEnvelopeCategory, setNewEnvelopeCategory] = useState<'monthly' | 'saving' | 'event' | 'subscription' | 'project' | 'custom'>('custom');
   const [newEnvelopeIsRecurring, setNewEnvelopeIsRecurring] = useState(false);
@@ -269,8 +273,10 @@ export const BudgetIntelligent: React.FC = () => {
       showToast(currentLabels.invalidAmount, 'error');
       return;
     }
-    updateEnvelopeDeposit(showEditDepositModal, amountFloat);
+    const amountHTG = FinancialEngine.convertToHTG(amountFloat, editDepositCurrency, rates);
+    updateEnvelopeDeposit(showEditDepositModal, amountHTG);
     setNewDepositAmount('');
+    setEditDepositCurrency('HTG');
     setShowEditDepositModal(null);
     showToast(language === 'HT' ? 'Depo anvlòp la chanje!' : 'Dépôt de l\'enveloppe mis à jour !', 'success');
   };
@@ -283,8 +289,10 @@ export const BudgetIntelligent: React.FC = () => {
       showToast(currentLabels.invalidAmount, 'error');
       return;
     }
-    updateEnvelopeSpent(showEditSpentModal, amountFloat);
+    const amountHTG = FinancialEngine.convertToHTG(amountFloat, editSpentCurrency, rates);
+    updateEnvelopeSpent(showEditSpentModal, amountHTG);
     setNewSpentAmount('');
+    setEditSpentCurrency('HTG');
     setShowEditSpentModal(null);
     showToast(language === 'HT' ? 'Depans yo jwenn chanjman avèk siksè!' : 'Dépenses de l\'enveloppe mises à jour avec succès !', 'success');
   };
@@ -376,8 +384,8 @@ export const BudgetIntelligent: React.FC = () => {
     }
 
     addEnvelope(
-      newEnvelopeName,
-      newEnvelopeNameKreyol ? newEnvelopeNameKreyol : newEnvelopeName,
+      newEnvelopeName.trim(),
+      newEnvelopeName.trim(),
       newEnvelopeIcon,
       initialAmt,
       extra
@@ -386,7 +394,7 @@ export const BudgetIntelligent: React.FC = () => {
     // Reset fields
     setNewEnvelopeName('');
     setNewEnvelopeNameKreyol('');
-    setNewEnvelopeIcon('utensils');
+    setNewEnvelopeIcon('');
     setNewEnvelopeInitialAlloc('');
     setNewEnvelopeCategory('custom');
     setNewEnvelopeIsRecurring(false);
@@ -1626,9 +1634,15 @@ export const BudgetIntelligent: React.FC = () => {
             onSubmit={handleAddExpenseSubmit}
             className="bg-neutral-900 border border-white/10 p-5 rounded-2xl max-w-sm w-full relative space-y-4"
           >
-            <h3 className="text-base font-black text-red-400 flex items-center gap-1.5">
+            <h3 className="text-base font-black text-red-400 flex items-center gap-1.5 font-sans">
               💸 {currentLabels.addExpense} : {pIdLabel(showExpenseModal)}
             </h3>
+
+            {getAssociatedGoalName(showExpenseModal) && (
+              <div className="text-[10px] text-amber-300 font-extrabold bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-xl flex items-center gap-1.5 uppercase font-mono">
+                🎯 {language === 'HT' ? 'Objektif ki makònen' : 'Objectif associé'} : {getAssociatedGoalName(showExpenseModal)}
+              </div>
+            )}
 
             <div className="space-y-1">
               <label className="text-[10.5px] font-bold text-neutral-400">{currentLabels.amount} (HTG)</label>
@@ -1749,23 +1763,38 @@ export const BudgetIntelligent: React.FC = () => {
         <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
           <form 
             onSubmit={handleEditDepositSubmit}
-            className="bg-neutral-900 border border-white/10 p-5 rounded-2xl max-w-sm w-full relative space-y-4"
+            className="bg-neutral-900 border border-white/10 p-5 rounded-2xl max-w-sm w-full relative space-y-4 shadow-xl"
           >
             <h3 className="text-base font-black text-amber-400 flex items-center gap-1.5">
               ✏️ {language === 'HT' ? 'Chanje depo a' : 'Modifier le dépôt'} : {pIdLabel(showEditDepositModal)}
             </h3>
 
             <div className="space-y-1">
-              <label className="text-[10.5px] font-bold text-neutral-400">{language === 'HT' ? 'Kantite kòb ou vle mete nèt (HTG)' : 'Nouveau budget total alloué (HTG)'}</label>
-              <input
-                type="number"
-                required
-                min="0"
-                placeholder="2000"
-                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
-                value={newDepositAmount}
-                onChange={(e) => setNewDepositAmount(e.target.value)}
-              />
+              <label className="text-[10.5px] font-bold text-neutral-400">
+                {language === 'HT' ? 'Mete montan ak deviz la' : 'Entrer le montant et la devise'}
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="any"
+                  placeholder="2000"
+                  className="col-span-2 w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
+                  value={newDepositAmount}
+                  onChange={(e) => setNewDepositAmount(e.target.value)}
+                />
+                <select
+                  value={editDepositCurrency}
+                  onChange={(e) => setEditDepositCurrency(e.target.value as any)}
+                  className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
+                >
+                  <option value="HTG">HTG</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="USDT">USDT</option>
+                </select>
+              </div>
             </div>
 
             <div className="text-[10px] text-neutral-400 leading-normal bg-neutral-950/40 p-2.5 rounded-lg border border-white/5">
@@ -1801,7 +1830,7 @@ export const BudgetIntelligent: React.FC = () => {
         <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
           <form 
             onSubmit={handleEditSpentSubmit}
-            className="bg-neutral-900 border border-white/10 p-5 rounded-2xl max-w-sm w-full relative space-y-4"
+            className="bg-neutral-900 border border-white/10 p-5 rounded-2xl max-w-sm w-full relative space-y-4 shadow-xl"
           >
             <h3 className="text-base font-black text-amber-400 flex items-center gap-1.5">
               ✏️ {language === 'HT' ? 'Chanje depans yo' : 'Modifier les dépenses'} : {pIdLabel(showEditSpentModal)}
@@ -1809,17 +1838,30 @@ export const BudgetIntelligent: React.FC = () => {
 
             <div className="space-y-1">
               <label className="text-[10.5px] font-bold text-neutral-400">
-                {language === 'HT' ? 'Kantite depans ou vle mete nèt (HTG)' : 'Nouveau montant total dépensé (HTG)'}
+                {language === 'HT' ? 'Mete montan ak deviz repans la' : 'Saisir le montant et la devise de dépense'}
               </label>
-              <input
-                type="number"
-                required
-                min="0"
-                placeholder="2000"
-                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
-                value={newSpentAmount}
-                onChange={(e) => setNewSpentAmount(e.target.value)}
-              />
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="any"
+                  placeholder="2000"
+                  className="col-span-2 w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
+                  value={newSpentAmount}
+                  onChange={(e) => setNewSpentAmount(e.target.value)}
+                />
+                <select
+                  value={editSpentCurrency}
+                  onChange={(e) => setEditSpentCurrency(e.target.value as any)}
+                  className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-mono"
+                >
+                  <option value="HTG">HTG</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="USDT">USDT</option>
+                </select>
+              </div>
             </div>
 
             <div className="text-[10px] text-neutral-400 leading-normal bg-neutral-950/40 p-2.5 rounded-lg border border-white/5">
@@ -1863,7 +1905,7 @@ export const BudgetIntelligent: React.FC = () => {
 
             <div className="space-y-1">
               <label className="text-[10.5px] font-bold text-neutral-400">
-                {language === 'HT' ? 'Non anvlòp an (Franse)' : 'Nom de l\'enveloppe (Français)'}
+                {language === 'HT' ? 'Nom anvlòp la' : 'Nom de l\'enveloppe'}
               </label>
               <input
                 type="text"
@@ -1875,25 +1917,13 @@ export const BudgetIntelligent: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10.5px] font-bold text-neutral-400">
-                {language === 'HT' ? 'Non anvlòp an (Kreyòl)' : 'Nom de l\'enveloppe (Kreyòl)'}
-              </label>
-              <input
-                type="text"
-                required
-                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-sans"
-                value={editEnvelopeNameKreyol}
-                onChange={(e) => setEditEnvelopeNameKreyol(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10.5px] font-bold text-neutral-400">Icône / Ikon</label>
+              <label className="text-[10.5px] font-bold text-neutral-400">{language === 'HT' ? 'Ikon (Opsyonèl)' : 'Icône (Optionnel)'}</label>
               <select
                 className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500"
                 value={editEnvelopeIcon}
                 onChange={(e) => setEditEnvelopeIcon(e.target.value)}
               >
+                <option value="">{language === 'HT' ? 'Pa gen ikon (Opsyonèl)' : 'Aucune icône (Optionnel)'}</option>
                 <option value="utensils">🍚 {language === 'HT' ? 'Manje / Nouviti' : 'Nourriture'}</option>
                 <option value="car">🚗 {language === 'HT' ? 'Transpò / Vwayaj' : 'Transport'}</option>
                 <option value="graduation-cap">🎓 {language === 'HT' ? 'Lekòl / Edikasyon' : 'Scolarité/École'}</option>
@@ -2177,35 +2207,25 @@ export const BudgetIntelligent: React.FC = () => {
             </h3>
 
             <div className="space-y-1">
-              <label className="text-[10.5px] font-bold text-neutral-400">{language === 'HT' ? 'Non anvlòp an (Franse)' : 'Nom de l\'enveloppe (Français)'}</label>
+              <label className="text-[10.5px] font-bold text-neutral-400">{language === 'HT' ? 'Nom anvlòp la' : 'Nom de l\'enveloppe'}</label>
               <input
                 type="text"
                 required
-                placeholder="Ex : Shopping, Sante..."
-                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500"
+                placeholder="Ex : Shopping, Sante, Makèt..."
+                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500 font-sans"
                 value={newEnvelopeName}
                 onChange={(e) => setNewEnvelopeName(e.target.value)}
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10.5px] font-bold text-neutral-400">{language === 'HT' ? 'Non anvlòp an (Kreyòl)' : 'Nom de l\'enveloppe (Kreyòl - Optionnel)'}</label>
-              <input
-                type="text"
-                placeholder="Ex : Makèt, Sante..."
-                className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500"
-                value={newEnvelopeNameKreyol}
-                onChange={(e) => setNewEnvelopeNameKreyol(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10.5px] font-bold text-neutral-400">Icône / Ikon</label>
+              <label className="text-[10.5px] font-bold text-neutral-400">{language === 'HT' ? 'Ikon (Opsyonèl)' : 'Icône (Optionnel)'}</label>
               <select
                 className="w-full bg-neutral-950 border border-white/10 text-white p-3 rounded-xl text-xs outline-none focus:border-amber-500"
                 value={newEnvelopeIcon}
                 onChange={(e) => setNewEnvelopeIcon(e.target.value)}
               >
+                <option value="">{language === 'HT' ? 'Pa gen ikon (Opsyonèl)' : 'Aucune icône (Optionnel)'}</option>
                 <option value="utensils">🍚 {language === 'HT' ? 'Manje / Nouviti' : 'Nourriture'}</option>
                 <option value="car">🚗 {language === 'HT' ? 'Transpò / Vwayaj' : 'Transport'}</option>
                 <option value="graduation-cap">🎓 {language === 'HT' ? 'Lekòl / Edikasyon' : 'Scolarité/École'}</option>
@@ -2488,5 +2508,31 @@ export const BudgetIntelligent: React.FC = () => {
     if (pId === 'saving') return language === 'HT' ? 'Epany' : 'Épargne';
 
     return pId;
+  }
+
+  function getAssociatedGoalName(envelopeId: string) {
+    const env = envelopes.find(e => e.id === envelopeId);
+    if (!env) return null;
+    const envNameLower = env.name.toLowerCase();
+    const envKreyolLower = (env.nameKreyol || '').toLowerCase();
+
+    // 1. Exact name or sub-string matching in any active saving goals
+    const match = goals.find(g => 
+      envNameLower.includes(g.name.toLowerCase()) || 
+      g.name.toLowerCase().includes(envNameLower) ||
+      envKreyolLower.includes(g.name.toLowerCase()) ||
+      g.name.toLowerCase().includes(envKreyolLower)
+    );
+    if (match) return match.name;
+
+    // 2. Fallback for epany / saving category
+    if (envelopeId === 'saving' || env.category === 'saving' || envNameLower.includes('saving') || envKreyolLower.includes('epany') || envNameLower.includes('épargne')) {
+      if (goals && goals.length > 0) {
+        return goals.map(g => g.name).join(', ');
+      }
+      return language === 'HT' ? 'Pa gen objektif aktif kounye a' : 'Aucun objectif actif actuel';
+    }
+
+    return null;
   }
 };

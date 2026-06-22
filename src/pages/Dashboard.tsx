@@ -3,6 +3,8 @@ import { useAppContext } from '../contexts/AppContext';
 import { TRANSLATIONS } from '../lib/translations';
 import { GoalCard } from '../components/GoalCard';
 import { BudgetIntelligent } from '../components/BudgetIntelligent';
+import { SubscriptionManager } from '../components/SubscriptionManager';
+import { CurrencyConverterModal } from '../components/CurrencyConverter';
 import { 
   PlusCircle, 
   Zap, 
@@ -111,6 +113,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // --- INTERACTIVE CHART SETTINGS ---
   const [chartCurrency, setChartCurrency] = useState<'HTG' | 'USD' | 'EUR'>('HTG');
   const [chartView, setChartView] = useState<'cumulative' | 'monthly'>('cumulative');
+
+  // --- CURRENCY CONVERTER DIALOG STATE ---
+  const [showConverterModal, setShowConverterModal] = useState(false);
 
   const tips = [
     {
@@ -467,6 +472,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         >
           <Zap size={18} />
           {t.quickAdd}
+        </button>
+
+        <button 
+          onClick={() => setShowConverterModal(true)}
+          className="border border-amber-550/20 bg-amber-550/5 hover:bg-amber-550/10 text-amber-400 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 px-5 py-4 rounded-xl transition duration-200 active:scale-95 flex-1 sm:flex-initial cursor-pointer font-sans"
+        >
+          <RefreshCw size={18} />
+          {language === 'HT' ? 'Konvètè Lajan' : 'Convertisseur'}
         </button>
       </section>
 
@@ -927,6 +940,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       </section>
 
+      {/* Subscriptions Module */}
+      <section className="space-y-4 animate-in fade-in slide-in-from-bottom duration-300">
+        <SubscriptionManager />
+      </section>
+
       {/* Active Goals Section */}
       <section className="space-y-4">
         <div className="flex justify-between items-center">
@@ -1097,6 +1115,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Currency Converter Modal */}
+      <CurrencyConverterModal 
+        open={showConverterModal} 
+        onClose={() => setShowConverterModal(false)} 
+      />
 
     </div>
   );

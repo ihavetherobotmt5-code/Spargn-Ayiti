@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Goal, Contribution, ExchangeRates, LanguageCode, CurrencyCode, ContributionFrequency, IncomeTransaction, BudgetEnvelope, DistributionProfile, IncomeSource, VisionItem } from '../types';
+import { Goal, Contribution, ExchangeRates, LanguageCode, CurrencyCode, ContributionFrequency, IncomeTransaction, BudgetEnvelope, DistributionProfile, IncomeSource, VisionItem, Subscription } from '../types';
 import { FinancialEngine, DEFAULT_ENVELOPES, DEFAULT_PROFILES } from '../lib/FinancialEngine';
 
 interface AppContextType {
@@ -63,6 +63,13 @@ interface AppContextType {
   addVisionItem: (item: Omit<VisionItem, 'id' | 'createdDate'>) => VisionItem;
   deleteVisionItem: (id: string) => void;
   updateVisionItem: (id: string, updates: Partial<VisionItem>) => void;
+
+  // --- Les Abonnements ---
+  subscriptions: Subscription[];
+  addSubscription: (sub: Omit<Subscription, 'id'>) => Subscription;
+  deleteSubscription: (id: string) => void;
+  toggleSubscriptionActive: (id: string) => void;
+  updateSubscription: (id: string, updates: Partial<Subscription>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -119,6 +126,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- Mon Carnet d'Avenir ---
   const [visionItems, setVisionItems] = useState<VisionItem[]>([]);
+
+  // --- Les Abonnements ---
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
   // --- Budget Intelligent State v1.3 ---
   const [envelopes, setEnvelopes] = useState<BudgetEnvelope[]>(DEFAULT_ENVELOPES);
@@ -213,6 +223,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // --- Mon Carnet d'Avenir ---
         if (data.visionItems) setVisionItems(data.visionItems);
+
+        // --- Les Abonnements ---
+        if (data.subscriptions) {
+          setSubscriptions(data.subscriptions);
+        } else {
+          // Default seeder for subscriptions if they don't exist yet
+          const todayNow = new Date();
+          const formatDateOffset = (days: number) => {
+            const tgt = new Date(todayNow.getTime() + days * 24 * 60 * 60 * 1000);
+            return tgt.toISOString().split('T')[0];
+          };
+          setSubscriptions([
+            {
+              id: 'sub_netflix',
+              name: 'Netflix',
+              amount: 20,
+              currency: 'USD',
+              billingCycle: 'monthly',
+              nextBillingDate: formatDateOffset(5),
+              active: true
+            },
+            {
+              id: 'sub_claude',
+              name: 'Claude AI',
+              amount: 20,
+              currency: 'USD',
+              billingCycle: 'monthly',
+              nextBillingDate: formatDateOffset(12),
+              active: true
+            }
+          ]);
+        }
       } catch (e) {
         console.error('Failed to parse storage data:', e);
       }
@@ -288,6 +330,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRates(DEFAULT_RATES);
       setLanguage('HT');
       setVisionItems(DEFAULT_VISION_ITEMS);
+      
+      const todayNow = new Date();
+      const formatDateOffset = (days: number) => {
+        const tgt = new Date(todayNow.getTime() + days * 24 * 60 * 60 * 1000);
+        return tgt.toISOString().split('T')[0];
+      };
+      setSubscriptions([
+        {
+          id: 'sub_netflix',
+          name: 'Netflix',
+          amount: 20,
+          currency: 'USD',
+          billingCycle: 'monthly',
+          nextBillingDate: formatDateOffset(5),
+          active: true
+        },
+        {
+          id: 'sub_claude',
+          name: 'Claude AI',
+          amount: 20,
+          currency: 'USD',
+          billingCycle: 'monthly',
+          nextBillingDate: formatDateOffset(12),
+          active: true
+        }
+      ]);
     }
     setIsLoaded(true);
   }, []);
@@ -310,10 +378,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         incomeTransactions,
         activeProfileId,
         availableFunds,
-        visionItems
+        visionItems,
+        subscriptions
       }));
     }
-  }, [goals, completedGoals, contributions, rates, language, userName, userAvatar, isPinLockEnabled, pinCode, envelopes, profiles, incomeTransactions, activeProfileId, availableFunds, visionItems, isLoaded]);
+  }, [goals, completedGoals, contributions, rates, language, userName, userAvatar, isPinLockEnabled, pinCode, envelopes, profiles, incomeTransactions, activeProfileId, availableFunds, visionItems, subscriptions, isLoaded]);
 
   const addGoal = (goal: Omit<Goal, 'id' | 'createdDate' | 'status'>): Goal => {
     const newGoal: Goal = {
@@ -730,6 +799,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setVisionItems(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
   };
 
+  // --- Les Abonnements ---
+  const addSubscription = (sub: Omit<Subscription, 'id'>): Subscription => {
+    const newSub: Subscription = {
+      ...sub,
+      id: 'sub_' + Date.now().toString()
+    };
+    setSubscriptions(prev => [...prev, newSub]);
+    return newSub;
+  };
+
+  const deleteSubscription = (id: string) => {
+    setSubscriptions(prev => prev.filter(s => s.id !== id));
+  };
+
+  const toggleSubscriptionActive = (id: string) => {
+    setSubscriptions(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
+  };
+
+  const updateSubscription = (id: string, updates: Partial<Subscription>) => {
+    setSubscriptions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
   const clearAllData = () => {
     localStorage.removeItem(STORAGE_KEY);
     setGoals([]);
@@ -739,12 +830,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLanguage('HT');
     setUserName("Jean-Robert L'Ouverture");
     setUserAvatar("https://lh3.googleusercontent.com/aida-public/AB6AXuASZfbYFSGky0hlFIES1mhVDDKA9MytGAuPtQArL2ivbgyThhmS1VHY9uf7p6XoOmelOtSA5dBhHG6g3gj79xhIsa6wiNALu3yw__mtPY3ycXZlqaXZEMCkqYEX4YdCOIxLSq-yn9XhUDkEiMgyDZhr-Jv0utVxoz5FeEgFl49_icVFrav2JyR7TNSDpej-PTjnMf_PBS5WkWza_bm7Tt1RXoACU8zTwOG42dY6okVlUXt9kBTU4eYhEq-RJlfowpT3zbpnxqucQ06p");
-    setEnvelopes(DEFAULT_ENVELOPES);
-    setProfiles(DEFAULT_PROFILES);
+    
+    // Set all envelopes balances and allocations to 0
+    const emptyEnvelopes = DEFAULT_ENVELOPES.map(env => ({
+      ...env,
+      allocatedAmount: 0,
+      spentAmount: 0,
+      percentage: 0
+    }));
+    setEnvelopes(emptyEnvelopes);
+
+    // Reset profile percentages to 0
+    const emptyProfiles = DEFAULT_PROFILES.map(prof => {
+      const pCopy = { ...prof };
+      const zeroPercentages: Record<string, number> = {};
+      Object.keys(pCopy.percentages).forEach(k => {
+        zeroPercentages[k] = 0;
+      });
+      return {
+        ...pCopy,
+        percentages: zeroPercentages
+      };
+    });
+    setProfiles(emptyProfiles);
+
     setIncomeTransactions([]);
     setActiveProfileId('normal');
-    setAvailableFunds(10500);
-    setVisionItems(DEFAULT_VISION_ITEMS);
+    setAvailableFunds(0); // Available balance = 0
+    setVisionItems([]);
+    setSubscriptions([]);
   };
 
   return (
@@ -798,7 +912,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       visionItems,
       addVisionItem,
       deleteVisionItem,
-      updateVisionItem
+      updateVisionItem,
+      subscriptions,
+      addSubscription,
+      deleteSubscription,
+      toggleSubscriptionActive,
+      updateSubscription
     }}>
       {children}
       {toast && (
