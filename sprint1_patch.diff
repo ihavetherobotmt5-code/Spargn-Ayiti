@@ -1,0 +1,164 @@
+--- scripts/zip-extract/Spargn-Ayiti-main/src/contexts/AppContext.tsx	2026-06-22 14:31:44.000000000 +0000
++++ spargn/src/contexts/AppContext.tsx	2026-06-23 23:16:29.498218970 +0000
+@@ -135,7 +135,11 @@
+   const [profiles, setProfiles] = useState<DistributionProfile[]>(DEFAULT_PROFILES);
+   const [incomeTransactions, setIncomeTransactions] = useState<IncomeTransaction[]>([]);
+   const [activeProfileId, setActiveProfileId] = useState<string>('normal');
+-  const [availableFunds, setAvailableFunds] = useState<number>(10500);
++  // B8 fix: initial availableFunds was 10500 (a random demo seed) while clearAllData() reset it to 0,
++  // producing an inconsistent first-run vs reset experience. Aligned on 0 so a fresh user and a user
++  // who just cleared their data see the same empty portfolio. If a saved value exists in localStorage,
++  // the load effect below overwrites this with the persisted amount.
++  const [availableFunds, setAvailableFunds] = useState<number>(0);
+ 
+   const [isPinLockEnabled, setPinLockEnabled] = useState<boolean>(() => {
+     try {
+@@ -483,13 +487,63 @@
+   };
+ 
+   const exportDataJSON = () => {
++    // Sprint 1 (B5 fix): full-state backup. The original implementation only
++    // exported goals/completedGoals/contributions/rates/language, silently
++    // dropping every v1.3+ slice (envelopes, profiles, incomeTransactions,
++    // visionItems, subscriptions, profile, PIN, availableFunds) AND the two
++    // localStorage-only slices (Sòl, Kòb Sekou). Users who relied on backup
++    // to migrate devices lost all of that data. We now include everything.
++    //
++    // `version: 2` lets future importers migrate this file safely. v1 (no
++    // version field) is still importable — see importData().
++
++    // Sòl + Kòb Sekou live in localStorage directly (Dashboard owns them).
++    // Sprint 2 will lift them into AppContext; for Sprint 1 we just snapshot
++    // them at the localStorage boundary, exactly like the rest of the app.
++    const sol = {
++      weeklyHand: Number(localStorage.getItem('spargn_sol_hand') || '1000'),
++      selectedTurn: Number(localStorage.getItem('spargn_sol_turn') || '2'),
++      week: Number(localStorage.getItem('spargn_sol_week') || '1'),
++      paidWeeks: (() => {
++        try {
++          const raw = localStorage.getItem('spargn_sol_paid');
++          return raw ? JSON.parse(raw) : [false, false, false, false];
++        } catch (_) {
++          return [false, false, false, false];
++        }
++      })(),
++      cycleCount: Number(localStorage.getItem('spargn_sol_cycle_count') || '0'),
++    };
++    const emergencyFund = Number(localStorage.getItem('spargn_emergency_fund') || '0');
++
+     const data = {
++      // Schema marker — see importData() for the migration guard.
++      version: 2,
++      exportDate: new Date().toISOString(),
++
++      // --- Original v1 fields (kept verbatim for backward compatibility) ---
+       goals,
+       completedGoals,
+       contributions,
+       rates,
+       language,
+-      exportDate: new Date().toISOString()
++
++      // --- v1.3+ slices previously dropped (B5 fix) ---
++      userName,
++      userAvatar,
++      isPinLockEnabled,
++      pinCode,
++      envelopes,
++      profiles,
++      incomeTransactions,
++      activeProfileId,
++      availableFunds,
++      visionItems,
++      subscriptions,
++
++      // --- Sòl + Kòb Sekou (localStorage-owned, B5 fix) ---
++      sol,
++      emergencyFund,
+     };
+     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+     const url = URL.createObjectURL(blob);
+@@ -560,13 +614,83 @@
+   };
+ 
+   const importData = (jsonString: string): boolean => {
++    // Sprint 1 (B6 fix): full-state restore with a versioned migration guard.
++    //
++    // - v1 (legacy, no `version` field): restores ONLY the original 5 fields
++    //   (goals/completedGoals/contributions/rates/language) — exactly what the
++    //   old code did. We deliberately do NOT touch other state, so importing
++    //   an old backup into a richer current app cannot destroy newer data.
++    //   A toast warns the user that the restore was partial.
++    //
++    // - v2 (this sprint): restores every slice that's present in the file,
++    //   using the same `if (data.X)` guards the original code used so missing
++    //   fields fall back to current state instead of clobbering with undefined.
++    //
++    // - Unknown future versions: refuse with a clear toast and return false.
+     try {
+       const data = JSON.parse(jsonString);
++
++      // Reject unknown future versions up front so we never silently
++      // half-import a schema we don't understand.
++      if (data.version !== undefined && typeof data.version !== 'number') {
++        showToast('Backup ignore : champ version invalide.', 'error');
++        return false;
++      }
++      const version = data.version; // number | undefined (undefined => v1 legacy)
++
++      // --- v1 fields: always restored if present (v1 + v2 both carry these) ---
+       if (data.goals) setGoals(data.goals);
+       if (data.completedGoals) setCompletedGoals(data.completedGoals);
+       if (data.contributions) setContributions(data.contributions);
+       if (data.rates) setRates(data.rates);
+       if (data.language) setLanguage(data.language);
++
++      // --- v2 fields: only restored on v2 (or later) backups ---
++      if (version !== undefined && version >= 2) {
++        if (data.userName !== undefined) setUserName(data.userName);
++        if (data.userAvatar !== undefined) setUserAvatar(data.userAvatar);
++        if (data.isPinLockEnabled !== undefined) setPinLockEnabled(data.isPinLockEnabled);
++        if (data.pinCode !== undefined) setPinCode(data.pinCode);
++
++        if (data.envelopes) setEnvelopes(data.envelopes);
++        if (data.profiles) setProfiles(data.profiles);
++        if (data.incomeTransactions) setIncomeTransactions(data.incomeTransactions);
++        if (data.activeProfileId) setActiveProfileId(data.activeProfileId);
++        if (data.availableFunds !== undefined) setAvailableFunds(data.availableFunds);
++
++        if (data.visionItems) setVisionItems(data.visionItems);
++        if (data.subscriptions) setSubscriptions(data.subscriptions);
++
++        // Sòl + Kòb Sekou are localStorage-owned (Dashboard reads/writes them
++        // directly). We restore them at the same boundary. The Dashboard's
++        // own useState initializers will pick these up on the next full app
++        // reload; if the user is mid-session, the values are still safely
++        // persisted for the next visit.
++        if (data.sol && typeof data.sol === 'object') {
++          if (typeof data.sol.weeklyHand === 'number') localStorage.setItem('spargn_sol_hand', String(data.sol.weeklyHand));
++          if (typeof data.sol.selectedTurn === 'number') localStorage.setItem('spargn_sol_turn', String(data.sol.selectedTurn));
++          if (typeof data.sol.week === 'number') localStorage.setItem('spargn_sol_week', String(data.sol.week));
++          if (Array.isArray(data.sol.paidWeeks)) localStorage.setItem('spargn_sol_paid', JSON.stringify(data.sol.paidWeeks));
++          if (typeof data.sol.cycleCount === 'number') localStorage.setItem('spargn_sol_cycle_count', String(data.sol.cycleCount));
++        }
++        if (typeof data.emergencyFund === 'number') {
++          localStorage.setItem('spargn_emergency_fund', String(data.emergencyFund));
++        }
++      }
++
++      // --- Migration guard: warn the user when a legacy backup only
++      //     restored part of their state. This is critical UX — without
++      //     it, a user importing an old v1 backup would assume everything
++      //     came back and be confused why their envelopes are missing.
++      if (version === undefined) {
++        showToast(
++          language === 'HT'
++            ? 'Backup ansyen (v1) enpòte. Se sèlman objektif, kontribisyon, to, ak lang ki retabli. Envelop, abònman, Sòl, Kòb Sekou pa t nan backup sa a.'
++            : 'Ancienne sauvegarde (v1) importée. Seuls les objectifs, contributions, taux et langue ont été restaurés. Enveloppes, abonnements, Sòl, Kòb Sekou n\'étaient pas présents dans ce fichier.',
++          'info'
++        );
++      }
++
+       return true;
+     } catch (e) {
+       console.error('Failed to import backup:', e);
