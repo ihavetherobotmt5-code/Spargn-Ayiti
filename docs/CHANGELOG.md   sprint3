@@ -1,0 +1,46 @@
+# Changelog
+
+All notable changes made during **Sprint 3** are documented in this file.
+
+## [Sprint 3]
+
+### Refactored
+
+* Centralized HT/FR/EN translation strings into the `FINANCIAL_TEXT` object in `PyasChatbot.tsx`.
+* Renamed ambiguous variables in `PyasChatbot.tsx` (`a` → `analysis`, `ctx` → `context`) to improve readability.
+* Added the `PILLAR_LABELS` constant in `PyasChatbot.tsx`.
+* Added the `FINANCIAL_THRESHOLDS` constant in `PyasChatbot.tsx`.
+* Replaced logical OR (`||`) with nullish coalescing (`??`) where appropriate to properly handle `null` and `undefined` values in both `PyasChatbot.tsx` and `financialAnalyzer.ts`.
+* Removed redundant and obsolete comments from `PyasChatbot.tsx`.
+* Added the `FINANCIAL_CONSTANTS` object in `financialAnalyzer.ts` to eliminate magic numbers.
+* Added JSDoc documentation to all exported functions in `financialAnalyzer.ts`.
+* Improved overall code consistency, readability, and maintainability.
+
+### Added
+
+* Created `tests/financialAnalyzer.test.ts` with unit tests covering:
+
+  * No income.
+  * Single envelope.
+  * No envelopes.
+  * Goal already achieved.
+  * Very large financial amounts.
+  * User saving 100% of their income.
+
+### Documentation
+
+* Added Sprint 3 documentation in the `docs/` directory.
+* Created `README.md` to describe the documentation structure.
+* Created `REFACTOR_REPORT.md` with a detailed description of the refactoring work.
+* Created `SUMMARY.md` providing a high-level overview of Sprint 3.
+* Created `FILES_MODIFIED.md` listing all files modified during the sprint.
+
+### Validation
+
+Sprint 3 was validated using the following commands:
+
+```bash
+npm run type-check
+npm run lint
+npm test
+```
