@@ -160,3 +160,4 @@ ExpenseHistoryService
         │
         ▼
 Filtered & Sorted Results
+ExpenseHistoryService introduces a dedicated layer for managing archived expense history. It provides efficient filtering, searching and sorting while preserving immutability, maintaining compatibility with the existing application architecture and fixing the previous sorting implementation bug.
