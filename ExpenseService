@@ -1,3 +1,13 @@
+Expense Service
+Overview
+
+ExpenseService centralizes all business logic related to expense archiving.
+
+Its responsibility is to manage the lifecycle of an expense without modifying the existing Expense model or impacting the financial calculation engine.
+
+File
+src/services/expenseService.ts
+
 Responsibilities
 
 The service provides three core operations:
