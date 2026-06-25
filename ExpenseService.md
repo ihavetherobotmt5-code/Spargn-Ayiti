@@ -135,3 +135,6 @@ ExpenseService
         │
         ▼
 Updated Expense Collections
+Sprint 4 Result
+
+ExpenseService introduces a dedicated business layer for managing the lifecycle of expenses while preserving the existing data model and maintaining full compatibility with the application's financial calculations.
