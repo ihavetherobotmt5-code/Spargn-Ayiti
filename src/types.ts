@@ -106,5 +106,53 @@ export interface Subscription {
   nextBillingDate: string; // YYYY-MM-DD
   active: boolean;
 }
+// ===============================
+// Expense Management (Sprint 4)
+// ===============================
+
+export type ExpenseCategory =
+  | 'food'
+  | 'transport'
+  | 'housing'
+  | 'health'
+  | 'education'
+  | 'entertainment'
+  | 'family'
+  | 'business'
+  | 'subscription'
+  | 'saving'
+  | 'other';
+
+export interface Expense {
+  id: string;
+  amount: number;
+  currency: CurrencyCode;
+
+  category: ExpenseCategory;
+
+  envelopeId?: string;
+
+  title: string;
+  description?: string;
+
+  date: string;
+
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type ExpenseReason =
+  | 'user_deleted'
+  | 'correction';
+
+export interface ArchivedExpense {
+  id: string;
+
+  expense: Expense;
+
+  archivedAt: string;
+
+  reason: ExpenseReason;
+}
 
 
