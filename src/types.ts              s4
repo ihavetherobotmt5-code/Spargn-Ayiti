@@ -1,24 +1,31 @@
 // ============================================================================
-// Archived Expenses
-// Sprint 4
+// Sprint 4 - Archived Expense Types
+// NOTE:
+// Do NOT modify the existing Expense interface.
+// ArchivedExpense extends the application without introducing breaking changes.
 // ============================================================================
 
-/**
- * Represents an archived expense.
- *
- * The original Expense model remains unchanged to preserve
- * compatibility with the FinancialEngine and existing features.
- */
+export type ArchiveReason = 'user_deleted' | 'correction';
+
 export interface ArchivedExpense {
-  /** Same ID as the original expense */
+  /**
+   * Same identifier as the original expense.
+   */
   id: string;
 
-  /** Original expense (immutable) */
+  /**
+   * Original expense object.
+   * The Expense model remains unchanged.
+   */
   expense: Expense;
 
-  /** Date when the expense was archived */
+  /**
+   * Date when the expense was archived.
+   */
   archivedAt: Date;
 
-  /** Reason for archiving */
-  reason: 'user_deleted' | 'correction';
+  /**
+   * Reason for archiving.
+   */
+  reason: ArchiveReason;
 }
